@@ -1,4 +1,3 @@
-
 # Exploratory Data Analysis (EDA) Guide
 
 > **Project:** Loan Knowledge Base

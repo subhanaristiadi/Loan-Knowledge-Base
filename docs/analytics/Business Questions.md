@@ -1,4 +1,3 @@
-
 # Business Questions
 
 > **Project:** Loan Knowledge Base

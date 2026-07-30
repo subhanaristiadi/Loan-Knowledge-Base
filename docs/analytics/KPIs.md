@@ -1,4 +1,3 @@
-
 # Key Performance Indicators (KPIs)
 
 > **Project:** Loan Knowledge Base

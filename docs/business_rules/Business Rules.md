@@ -1,4 +1,3 @@
-
 # Business Rules
 
 > **Project:** Loan Knowledge Base

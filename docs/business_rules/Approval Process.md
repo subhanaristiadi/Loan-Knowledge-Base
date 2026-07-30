@@ -1,4 +1,3 @@
-
 # Approval Process
 
 > **Project:** Loan Knowledge Base

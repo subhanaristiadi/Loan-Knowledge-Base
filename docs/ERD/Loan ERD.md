@@ -1,4 +1,3 @@
-
 # Entity Relationship Diagram (ERD)
 
 > **Project:** Loan Knowledge Base

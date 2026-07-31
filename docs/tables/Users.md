@@ -12,26 +12,24 @@
 
 # Overview
 
-The **Users** table is the primary master table that stores customer information within the Loan Management System.
+The **Users** table stores customer profile information for individuals registered in the Loan Management System.
 
-Each customer is uniquely identified and may submit one or more loan applications throughout their relationship with the organization.
-
-This table contains demographic and contact information that supports loan processing, customer management, analytics, and reporting.
+Each record represents a unique customer and contains demographic information, registration details, education level, and residential location. The table serves as the central customer dimension referenced throughout the lending process.
 
 ---
 
 # Business Purpose
 
-The Users table maintains the master records of all customers.
+The Users table maintains customer information used throughout the lending lifecycle.
 
 Business objectives include:
 
-- Managing customer identities
+- Managing customer profiles
+- Recording customer registration information
+- Supporting demographic analysis
 - Supporting loan application processing
-- Maintaining customer contact information
-- Enabling demographic analysis
 - Supporting customer segmentation
-- Maintaining referential integrity
+- Supporting business reporting
 
 ---
 
@@ -42,9 +40,9 @@ Business objectives include:
 | Table Name | users |
 | Module | Customer Management |
 | Type | Master Table |
-| Primary Key | id |
-| Parent Tables | cities, educations |
-| Child Table | application |
+| Primary Key | user_id |
+| Parent Table | None |
+| Child Tables | application |
 | Estimated Volume | High |
 | Update Frequency | Continuous |
 
@@ -54,138 +52,110 @@ Business objectives include:
 
 | Column | Data Type | Nullable | PK | FK | Description |
 |----------|----------|----------|----|----|-------------|
-| id | BIGINT | No | ✓ | | Customer identifier |
-| full_name | VARCHAR(255) | No | | | Customer full name |
-| email | VARCHAR(255) | No | | | Email address |
-| phone | VARCHAR(30) | Yes | | | Phone number |
-| city_id | BIGINT | No | | ✓ | Customer city |
-| education_id | BIGINT | Yes | | ✓ | Customer education level |
-| created_at | TIMESTAMP | No | | | Customer registration date |
+| user_id | BIGINT | No | ✓ | | Unique customer identifier |
+| register_date | TIMESTAMP | No | | | Customer registration date and time |
+| gender | STRING | No | | | Customer gender |
+| date_of_birth | DATE | No | | | Customer date of birth |
+| education_code | INTEGER | No | | ✓ | References customer education level |
+| locations_id | INTEGER | No | | ✓ | References customer's city/location |
 
 ---
 
 # Column Descriptions
 
-## id
+## user_id
 
 **Description**
 
-Unique identifier for each customer.
+Unique identifier assigned to each customer.
 
 **Business Rules**
 
-- Auto-generated
-- Unique
-- Immutable
-
----
-
-## full_name
-
-**Description**
-
-Official full name of the customer.
-
-**Business Rules**
-
-- Required
-- Maximum 255 characters
-- Store legal name
-- Remove leading and trailing spaces
-
----
-
-## email
-
-**Description**
-
-Primary email address.
-
-**Business Rules**
-
-- Required
 - Must be unique
-- Valid email format
-- Used for customer communication
-
-Example:
-
-```text
-john.smith@email.com
-```
+- Cannot be NULL
+- Immutable after creation
 
 ---
 
-## phone
+## register_date
 
 **Description**
 
-Customer phone number.
+Date and time when the customer registered in the system.
 
 **Business Rules**
 
-- Optional
-- Store using standardized format
-- May include country code
-
-Example:
-
-```text
-+62-812-3456-7890
-```
+- Required
+- Cannot be NULL
 
 ---
 
-## city_id
+## gender
 
 **Description**
 
-References the customer's city.
+Customer gender.
+
+Example values:
+
+- Male
+- Female
+
+**Business Rules**
+
+- Required
+- Should contain standardized values
+
+---
+
+## date_of_birth
+
+**Description**
+
+Customer's date of birth.
+
+**Business Rules**
+
+- Required
+- Cannot be in the future
+
+---
+
+## education_code
+
+**Description**
+
+References the customer's highest education level.
 
 **References**
 
-```text
-cities.id
+```
+educations.education_code
 ```
 
 **Business Rules**
 
 - Required
-- City must exist
-- Foreign key enforced
+- Must reference an existing education level
 
 ---
 
-## education_id
+## locations_id
 
 **Description**
 
-References the customer's education level.
+References the customer's registered city.
 
 **References**
 
-```text
-educations.id
+```
+cities.locations_id
 ```
 
 **Business Rules**
 
-- Optional
-- Must reference a valid education level if provided
-
----
-
-## created_at
-
-**Description**
-
-Date and time the customer record was created.
-
-**Business Rules**
-
-- Automatically generated
-- Cannot be modified
-- Used for auditing and reporting
+- Required
+- Must reference an existing city
 
 ---
 
@@ -193,7 +163,7 @@ Date and time the customer record was created.
 
 | Column | Description |
 |---------|-------------|
-| id | Unique customer identifier |
+| user_id | Unique customer identifier |
 
 ---
 
@@ -201,8 +171,8 @@ Date and time the customer record was created.
 
 | Column | References |
 |---------|------------|
-| city_id | cities.id |
-| education_id | educations.id |
+| education_code | educations.education_code |
+| locations_id | cities.locations_id |
 
 ---
 
@@ -210,26 +180,29 @@ Date and time the customer record was created.
 
 | Related Table | Relationship | Description |
 |---------------|--------------|-------------|
-| cities | Many-to-One | Customer belongs to one city |
-| educations | Many-to-One | Customer has one education level |
-| application | One-to-Many | Customer may submit multiple loan applications |
+| application | One-to-Many | One customer can submit multiple loan applications |
+| educations | Many-to-One | Many customers can share the same education level |
+| cities | Many-to-One | Many customers can reside in the same city |
 
 ---
 
 # Entity Relationship
 
 ```text
-cities
-    │
-    ▼
-users
-    ▲
-    │
 educations
+      │
+      │ education_code
+      ▼
+users
+ ▲    │
+ │    │ locations_id
+ │    ▼
+cities
 
 users
-    │
-    ▼
+  │
+  │ user_id
+  ▼
 application
 ```
 
@@ -238,12 +211,10 @@ application
 # Business Rules
 
 - Every customer must have a unique identifier.
+- Every customer must have one education level.
 - Every customer must belong to one city.
-- Education level is optional.
-- Email addresses must be unique.
-- A customer may submit multiple loan applications.
-- Customer records should not be physically deleted.
-- Customer identity information should remain consistent.
+- Registration date must represent the customer's first registration.
+- Date of birth cannot be later than the current date.
 
 ---
 
@@ -251,12 +222,12 @@ application
 
 | Rule | Description |
 |------|-------------|
-| Required Name | full_name cannot be NULL |
-| Required Email | email cannot be NULL |
-| Unique Email | Duplicate emails are not allowed |
-| Valid Email | Must follow email format |
-| Valid City | city_id must exist |
-| Valid Education | education_id must exist if populated |
+| Required User ID | user_id cannot be NULL |
+| Required Registration Date | register_date cannot be NULL |
+| Required Gender | gender cannot be NULL |
+| Required Date of Birth | date_of_birth cannot be NULL |
+| Required Education | education_code cannot be NULL |
+| Required Location | locations_id cannot be NULL |
 
 ---
 
@@ -264,19 +235,10 @@ application
 
 | Constraint | Description |
 |------------|-------------|
-| PRIMARY KEY | id |
-| FOREIGN KEY | city_id |
-| FOREIGN KEY | education_id |
-| UNIQUE | email |
-| NOT NULL | full_name |
-| NOT NULL | email |
-| NOT NULL | city_id |
-
-Example:
-
-```sql
-UNIQUE (email)
-```
+| PRIMARY KEY | user_id |
+| FOREIGN KEY | education_code |
+| FOREIGN KEY | locations_id |
+| NOT NULL | Required columns |
 
 ---
 
@@ -284,138 +246,90 @@ UNIQUE (email)
 
 | Index | Columns | Purpose |
 |---------|----------|---------|
-| pk_users | id | Primary key lookup |
-| idx_users_email | email | Customer search |
-| idx_users_city | city_id | Geographic reporting |
-| idx_users_education | education_id | Demographic reporting |
-| idx_users_created | created_at | Registration trend analysis |
-
----
-
-# Sample Records
-
-| id | full_name | email | phone | city_id | education_id | created_at |
-|---:|-----------|-------|-------|--------:|-------------:|------------|
-| 1 | John Smith | john@email.com | +62-812-1111-1111 | 31 | 5 | 2026-01-05 09:12:00 |
-| 2 | Jane Doe | jane@email.com | +62-813-2222-2222 | 35 | 6 | 2026-01-07 14:30:00 |
-| 3 | Michael Brown | michael@email.com | +62-811-3333-3333 | 53 | 4 | 2026-01-10 08:45:00 |
+| pk_users | user_id | Primary key lookup |
+| idx_users_registration | register_date | Registration analysis |
+| idx_users_education | education_code | Education analysis |
+| idx_users_location | locations_id | Geographic analysis |
 
 ---
 
 # Common SQL Queries
 
-## View All Customers
+## View All Users
 
 ```sql
 SELECT *
-FROM users;
+FROM `crediu-504100.Crediu.Users`;
 ```
 
 ---
 
-## Customer Count
+## Users by Education
 
 ```sql
 SELECT
-    COUNT(*) AS total_customers
-FROM users;
+    education_code,
+    COUNT(*) AS total_users
+FROM `crediu-504100.Crediu.Users`
+GROUP BY education_code;
 ```
 
 ---
 
-## Customers by City
+## Users by City
 
 ```sql
 SELECT
-    c.city_name,
-    COUNT(u.id) AS total_customers
-FROM cities c
-LEFT JOIN users u
-    ON c.id = u.city_id
-GROUP BY c.city_name
-ORDER BY total_customers DESC;
+    locations_id,
+    COUNT(*) AS total_users
+FROM `crediu-504100.Crediu.Users`
+GROUP BY locations_id;
 ```
 
 ---
 
-## Customers by Education
+## Monthly User Registrations
 
 ```sql
 SELECT
-    e.education_name,
-    COUNT(u.id) AS total_customers
-FROM educations e
-LEFT JOIN users u
-    ON e.id = u.education_id
-GROUP BY e.education_name
-ORDER BY total_customers DESC;
-```
-
----
-
-## Monthly Customer Registrations
-
-```sql
-SELECT
-    DATE_TRUNC('month', created_at) AS month,
-    COUNT(*) AS new_customers
-FROM users
-GROUP BY month
-ORDER BY month;
-```
-
----
-
-## Customers with Loan Applications
-
-```sql
-SELECT
-    u.full_name,
-    COUNT(a.id) AS total_applications
-FROM users u
-LEFT JOIN application a
-    ON u.id = a.user_id
-GROUP BY u.full_name
-ORDER BY total_applications DESC;
+    DATE_TRUNC(DATE(register_date), MONTH) AS registration_month,
+    COUNT(*) AS total_users
+FROM `crediu-504100.Crediu.Users`
+GROUP BY registration_month
+ORDER BY registration_month;
 ```
 
 ---
 
 # Reporting Usage
 
-This table is commonly used in:
+This table is frequently used in:
 
 - Customer Dashboard
+- Registration Trend Report
+- Demographic Analysis
+- Geographic Distribution Dashboard
 - Executive Dashboard
-- Customer Demographics Report
-- Loan Portfolio Dashboard
-- Customer Segmentation Analysis
-- Regional Performance Dashboard
-- Marketing Campaign Analysis
 
 ---
 
 # KPIs Supported
 
 - Total Customers
-- New Customers
-- Customer Growth Rate
-- Customers by City
-- Customers by Province
-- Customers by Education
-- Average Applications per Customer
-- Customer Retention Rate
+- Monthly Registrations
+- Customer Distribution by Education
+- Customer Distribution by Location
+- Gender Distribution
 
 ---
 
 # ETL Considerations
 
-- Load reference tables before customer data.
-- Validate city and education references.
-- Remove duplicate email addresses.
-- Standardize phone number formats.
 - Preserve customer identifiers.
-- Record creation timestamps consistently.
+- Validate education references.
+- Validate location references.
+- Standardize gender values.
+- Validate registration timestamps and birth dates.
 
 ---
 
@@ -423,7 +337,7 @@ This table is commonly used in:
 
 | Classification | Description |
 |----------------|-------------|
-| Confidential | Contains customer personally identifiable information (PII) |
+| Confidential | Contains customer demographic information |
 
 ---
 
@@ -431,9 +345,9 @@ This table is commonly used in:
 
 | Item | Policy |
 |------|--------|
-| Retention Period | 10 Years |
-| Archive Policy | Annual Archive |
-| Deletion Policy | Regulatory Compliance and privacy policy compliance |
+| Retention Period | 7 Years |
+| Archive Policy | Annual |
+| Deletion Policy | Regulatory Compliance |
 
 ---
 
@@ -441,8 +355,8 @@ This table is commonly used in:
 
 ### Depends On
 
-- cities
 - educations
+- cities
 
 ### Referenced By
 
@@ -452,30 +366,29 @@ This table is commonly used in:
 
 # AI & RAG Notes
 
-The **Users** table is the primary customer entity within the Loan Management System and provides essential context for AI-assisted analytics. It enables AI systems to:
+The **Users** table contains customer demographic and registration information.
 
-- Generate customer demographic reports.
-- Analyze customer growth and segmentation.
-- Recommend joins between customers, applications, and geographic data.
-- Produce SQL for customer analytics.
-- Support marketing, risk assessment, and portfolio analysis.
-- Enhance Retrieval-Augmented Generation (RAG) with structured customer metadata.
+It enables AI systems to:
+
+- Generate BigQuery SQL involving customer data.
+- Analyze customer demographics.
+- Produce registration trend reports.
+- Join customer information with applications, education, and location data.
+- Support customer segmentation and lending analytics.
 
 ---
 
 # Related Documentation
 
+- Application Table
+- Educations Table
 - Cities Table
 - Provinces Table
-- Educations Table
-- Application Table
 - Database Schema
 - Relationship Matrix
-- Customer Dashboard
-- Business Rules
 
 ---
 
 # Summary
 
-The **Users** table is the central master table for customer information within the Loan Management System. It stores demographic, geographic, and contact information that supports loan processing, customer management, analytics, reporting, and AI-powered applications. As the parent entity for loan applications, it forms the foundation of customer-centric operations across the entire platform.
+The **Users** table stores customer demographic and registration information, including registration date, gender, date of birth, education level, and location. It acts as the central customer master table and supports lending operations, demographic analysis, reporting, and AI-assisted SQL generation.

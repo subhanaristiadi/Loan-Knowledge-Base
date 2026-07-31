@@ -12,25 +12,25 @@
 
 # Overview
 
-The **Payment Methods** table stores the available payment methods that customers can use to repay their loans.
+The **Payment Methods** table stores the master list of payment methods available for loan repayments.
 
-It serves as a master reference table that standardizes payment method information across the loan management system.
+It serves as a reference table that standardizes payment channels across the Loan Management System, ensuring consistent payment processing and reporting.
 
-Each payment method defines how loan repayments are collected or transferred.
+Each payment method is identified by a unique identifier.
 
 ---
 
 # Business Purpose
 
-The Payment Methods table maintains the list of supported repayment methods.
+The Payment Methods table maintains standardized payment method information.
 
 Business objectives include:
 
 - Standardizing payment methods
-- Supporting repayment processing
-- Reducing data inconsistency
-- Supporting reporting and analytics
-- Managing available payment channels
+- Supporting loan repayment processing
+- Supporting payment reporting
+- Preventing inconsistent payment method values
+- Supporting business analytics
 
 ---
 
@@ -39,12 +39,12 @@ Business objectives include:
 | Property | Value |
 |----------|-------|
 | Table Name | payment_methods |
-| Module | Payment |
+| Module | Master Data |
 | Type | Master Table |
-| Primary Key | id |
+| Primary Key | payment_method_id |
 | Parent Table | None |
 | Child Tables | payments |
-| Estimated Volume | Low |
+| Estimated Volume | Very Low |
 | Update Frequency | Rare |
 
 ---
@@ -53,18 +53,14 @@ Business objectives include:
 
 | Column | Data Type | Nullable | PK | FK | Description |
 |----------|----------|----------|----|----|-------------|
-| id | BIGINT | No | ✓ | | Payment method ID |
-| payment_method_name | VARCHAR(100) | No | | | Payment method name |
-| description | TEXT | Yes | | | Description of the payment method |
-| is_active | BOOLEAN | No | | | Indicates whether the payment method is active |
-| created_at | TIMESTAMP | No | | | Record creation timestamp |
-| updated_at | TIMESTAMP | Yes | | | Last update timestamp |
+| payment_method_id | INTEGER | No | ✓ | | Unique payment method identifier |
+| payment_method | STRING | No | | | Payment method name |
 
 ---
 
 # Column Descriptions
 
-## id
+## payment_method_id
 
 **Description**
 
@@ -72,83 +68,30 @@ Unique identifier for each payment method.
 
 **Business Rules**
 
-- Auto-generated
-- Cannot be duplicated
+- Must be unique
+- Cannot be NULL
 - Immutable after creation
 
 ---
 
-## payment_method_name
+## payment_method
 
 **Description**
 
-The name of the payment method available to customers.
+Name of the payment method available for loan repayment.
 
-Examples include:
+Example values:
 
-- Bank Transfer
-- Virtual Account
-- Auto Debit
+- Biller Services
 - E-Wallet
-- Cash
-- QRIS
+- Inter-Bank Transfer
+- Intra-Bank Transfer
 
 **Business Rules**
 
 - Required
-- Must be unique
-- Cannot be empty
-
----
-
-## description
-
-**Description**
-
-Additional information describing the payment method.
-
-**Business Rules**
-
-- Optional
-- Used for internal documentation
-
----
-
-## is_active
-
-**Description**
-
-Indicates whether the payment method is currently available.
-
-Typical values:
-
-- TRUE
-- FALSE
-
----
-
-## created_at
-
-**Description**
-
-Timestamp when the payment method was created.
-
-**Business Rules**
-
-- Automatically generated
-- Required
-
----
-
-## updated_at
-
-**Description**
-
-Timestamp of the most recent update.
-
-**Business Rules**
-
-- Updated whenever the record changes
+- Cannot be NULL
+- Should contain standardized payment method names
 
 ---
 
@@ -156,7 +99,7 @@ Timestamp of the most recent update.
 
 | Column | Description |
 |---------|-------------|
-| id | Unique payment method identifier |
+| payment_method_id | Unique payment method identifier |
 
 ---
 
@@ -170,7 +113,7 @@ None.
 
 | Related Table | Relationship | Description |
 |---------------|--------------|-------------|
-| payments | One-to-Many | One payment method can be used by many payment records |
+| payments | One-to-Many | One payment method can be referenced by many payment transactions |
 
 ---
 
@@ -179,7 +122,7 @@ None.
 ```text
 payment_methods
         │
-        │ id
+        │ payment_method_id
         ▼
 payments
 ```
@@ -188,10 +131,10 @@ payments
 
 # Business Rules
 
-- Payment method names must be unique.
-- Only active payment methods may be used for new payments.
-- Historical payment records must retain their original payment method.
-- Payment methods should not be deleted if already referenced by payment transactions.
+- Every payment method must have a unique identifier.
+- Payment method names should be standardized.
+- Payment transactions should reference a valid payment method.
+- Payment methods should not be deleted if they are referenced by payment transactions.
 
 ---
 
@@ -199,9 +142,9 @@ payments
 
 | Rule | Description |
 |------|-------------|
-| Unique Name | payment_method_name must be unique |
-| Required Name | payment_method_name cannot be NULL |
-| Active Flag | is_active must contain TRUE or FALSE |
+| Required Method ID | payment_method_id cannot be NULL |
+| Required Method Name | payment_method cannot be NULL |
+| Unique Method ID | payment_method_id must be unique |
 
 ---
 
@@ -209,8 +152,7 @@ payments
 
 | Constraint | Description |
 |------------|-------------|
-| PRIMARY KEY | id |
-| UNIQUE | payment_method_name |
+| PRIMARY KEY | payment_method_id |
 | NOT NULL | Required columns |
 
 ---
@@ -219,21 +161,8 @@ payments
 
 | Index | Columns | Purpose |
 |---------|----------|---------|
-| pk_payment_methods | id | Primary key lookup |
-| idx_payment_method_name | payment_method_name | Search payment methods |
-| idx_payment_method_active | is_active | Active payment methods |
-
----
-
-# Sample Records
-
-| id | payment_method_name | is_active |
-|----|----------------------|-----------|
-| 1 | Bank Transfer | TRUE |
-| 2 | Virtual Account | TRUE |
-| 3 | Auto Debit | TRUE |
-| 4 | QRIS | TRUE |
-| 5 | Cash | FALSE |
+| pk_payment_methods | payment_method_id | Primary key lookup |
+| idx_payment_method_name | payment_method | Payment method search |
 
 ---
 
@@ -248,23 +177,22 @@ FROM `crediu-504100.Crediu.Payment Methods`;
 
 ---
 
-## Active Payment Methods
+## Count Payment Methods
 
 ```sql
-SELECT *
-FROM `crediu-504100.Crediu.Payment Methods`
-WHERE is_active = TRUE;
+SELECT
+    COUNT(*) AS total_payment_methods
+FROM `crediu-504100.Crediu.Payment Methods`;
 ```
 
 ---
 
-## Count Active Payment Methods
+## Search Payment Method
 
 ```sql
-SELECT
-    COUNT(*) AS total_active_methods
+SELECT *
 FROM `crediu-504100.Crediu.Payment Methods`
-WHERE is_active = TRUE;
+WHERE payment_method = 'E-Wallet';
 ```
 
 ---
@@ -275,27 +203,26 @@ This table is frequently used in:
 
 - Payment Dashboard
 - Payment Method Distribution
-- Loan Repayment Report
-- Payment Analytics
+- Loan Repayment Analysis
 - Executive Dashboard
 
 ---
 
 # KPIs Supported
 
-- Active Payment Methods
+- Total Payment Methods
 - Payment Method Usage
 - Payment Channel Distribution
-- Repayment Method Adoption
+- Digital Payment Adoption
 
 ---
 
 # ETL Considerations
 
-- Preserve payment method IDs.
-- Prevent duplicate payment method names.
-- Maintain active status correctly.
-- Update timestamps on modification.
+- Preserve payment method identifiers.
+- Prevent duplicate payment methods.
+- Standardize payment method names.
+- Validate payment method references before loading payment transactions.
 
 ---
 
@@ -331,15 +258,15 @@ This table is frequently used in:
 
 # AI & RAG Notes
 
-The **Payment Methods** table is a master reference table used to identify how loan repayments are made.
+The **Payment Methods** table provides standardized payment method information used throughout the Loan Management System.
 
 It enables AI systems to:
 
-- Explain available payment methods.
-- Generate BigQuery SQL involving repayment channels.
-- Analyze payment method usage.
-- Produce repayment reports.
-- Support payment-related analytics.
+- Generate BigQuery SQL involving payment methods.
+- Analyze payment channel usage.
+- Produce payment distribution reports.
+- Join payment method information with payment transactions.
+- Support repayment analytics.
 
 ---
 
@@ -347,13 +274,11 @@ It enables AI systems to:
 
 - Payments Table
 - Loans Table
-- Users Table
 - Database Schema
 - Relationship Matrix
-- Business Rules
 
 ---
 
 # Summary
 
-The **Payment Methods** table stores the master list of supported loan repayment methods. It standardizes payment channels across the system, supports repayment processing, reporting, and analytics, and serves as the reference table for all payment transactions.
+The **Payment Methods** table is a master reference table containing standardized loan repayment methods. It ensures consistent payment channel classification, supports reporting and analytics, and provides a common reference for AI-assisted SQL generation.

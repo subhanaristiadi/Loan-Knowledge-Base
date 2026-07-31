@@ -12,24 +12,25 @@
 
 # Overview
 
-The **Educations** table is a master reference table that stores standardized education levels used throughout the Loan Management System.
+The **Educations** table stores the master list of education levels used throughout the Loan Management System.
 
-Each customer may optionally be associated with one education level. Standardizing education information improves reporting consistency, customer segmentation, and demographic analysis.
+It serves as a reference table that standardizes applicant education information and ensures consistent data across loan applications and customer records.
+
+Each education level is uniquely identified by an education code.
 
 ---
 
 # Business Purpose
 
-The Educations table provides a controlled list of education levels for customer profiles.
+The Educations table maintains standardized education level data.
 
 Business objectives include:
 
-- Standardizing education information
+- Standardizing education levels
+- Supporting customer profile information
+- Supporting demographic analysis
 - Preventing inconsistent education values
-- Supporting demographic reporting
-- Improving customer segmentation
-- Enabling educational analytics
-- Maintaining referential integrity
+- Supporting reporting and analytics
 
 ---
 
@@ -40,9 +41,9 @@ Business objectives include:
 | Table Name | educations |
 | Module | Master Data |
 | Type | Master Table |
-| Primary Key | id |
+| Primary Key | education_code |
 | Parent Table | None |
-| Child Table | users |
+| Child Tables | application |
 | Estimated Volume | Very Low |
 | Update Frequency | Rare |
 
@@ -52,14 +53,14 @@ Business objectives include:
 
 | Column | Data Type | Nullable | PK | FK | Description |
 |----------|----------|----------|----|----|-------------|
-| id | BIGINT | No | ✓ | | Education identifier |
-| education_name | VARCHAR(100) | No | | | Education level |
+| education_code | INTEGER | No | ✓ | | Unique education level code |
+| education | STRING | No | | | Education level name |
 
 ---
 
 # Column Descriptions
 
-## id
+## education_code
 
 **Description**
 
@@ -67,34 +68,31 @@ Unique identifier for each education level.
 
 **Business Rules**
 
-- Auto-generated
-- Unique
-- Immutable
+- Must be unique
+- Cannot be NULL
+- Immutable after creation
 
 ---
 
-## education_name
+## education
 
 **Description**
 
-Official education level.
+Name of the education level.
 
-Examples:
+Example values:
 
-- Elementary School
-- Junior High School
-- Senior High School
-- Diploma
-- Bachelor's Degree
-- Master's Degree
-- Doctoral Degree
+- SD
+- SMP
+- SMA
+- Kuliah - Perguruan Tinggi
+- Pasca Sarjana
 
 **Business Rules**
 
 - Required
-- Must be unique
-- Use standardized naming
-- Remove leading and trailing spaces
+- Cannot be NULL
+- Should contain standardized education names
 
 ---
 
@@ -102,7 +100,13 @@ Examples:
 
 | Column | Description |
 |---------|-------------|
-| id | Unique education identifier |
+| education_code | Unique education level identifier |
+
+---
+
+# Foreign Keys
+
+None.
 
 ---
 
@@ -110,7 +114,7 @@ Examples:
 
 | Related Table | Relationship | Description |
 |---------------|--------------|-------------|
-| users | One-to-Many | One education level may belong to many customers |
+| application | One-to-Many | One education level can be referenced by many applications |
 
 ---
 
@@ -119,19 +123,19 @@ Examples:
 ```text
 educations
       │
-      │ id
+      │ education_code
       ▼
-users
+application
 ```
 
 ---
 
 # Business Rules
 
-- Every education level should be unique.
-- Customers may optionally have an education level.
-- Education values should follow standardized terminology.
-- Education records should rarely change.
+- Every education level must have a unique code.
+- Education names should be standardized.
+- Applications should reference a valid education code.
+- Education records should not be deleted if referenced by applications.
 
 ---
 
@@ -139,9 +143,9 @@ users
 
 | Rule | Description |
 |------|-------------|
-| Required Name | education_name cannot be NULL |
-| Unique Name | No duplicate education levels |
-| Standard Naming | Use official education terminology |
+| Required Code | education_code cannot be NULL |
+| Required Education | education cannot be NULL |
+| Unique Code | education_code must be unique |
 
 ---
 
@@ -149,15 +153,8 @@ users
 
 | Constraint | Description |
 |------------|-------------|
-| PRIMARY KEY | id |
-| UNIQUE | education_name |
-| NOT NULL | education_name |
-
-Example:
-
-```sql
-UNIQUE (education_name)
-```
+| PRIMARY KEY | education_code |
+| NOT NULL | Required columns |
 
 ---
 
@@ -165,22 +162,8 @@ UNIQUE (education_name)
 
 | Index | Columns | Purpose |
 |---------|----------|---------|
-| pk_educations | id | Primary key lookup |
-| idx_educations_name | education_name | Fast lookup |
-
----
-
-# Sample Records
-
-| id | education_name |
-|---:|----------------|
-| 1 | Elementary School |
-| 2 | Junior High School |
-| 3 | Senior High School |
-| 4 | Diploma |
-| 5 | Bachelor's Degree |
-| 6 | Master's Degree |
-| 7 | Doctoral Degree |
+| pk_educations | education_code | Primary key lookup |
+| idx_education_name | education | Education search |
 
 ---
 
@@ -190,75 +173,57 @@ UNIQUE (education_name)
 
 ```sql
 SELECT *
-FROM educations;
+FROM `crediu-504100.Crediu.Educations`;
 ```
 
 ---
 
-## Customers by Education
+## Count Education Levels
 
 ```sql
 SELECT
-    e.education_name,
-    COUNT(u.id) AS total_customers
-FROM educations e
-LEFT JOIN users u
-    ON e.id = u.education_id
-GROUP BY e.education_name
-ORDER BY total_customers DESC;
+    COUNT(*) AS total_education_levels
+FROM `crediu-504100.Crediu.Educations`;
 ```
 
 ---
 
-## Percentage of Customers by Education
+## Search Education Level
 
 ```sql
-SELECT
-    e.education_name,
-    COUNT(u.id) AS total_customers,
-    ROUND(
-        COUNT(u.id) * 100.0 /
-        SUM(COUNT(u.id)) OVER (),
-        2
-    ) AS percentage
-FROM educations e
-LEFT JOIN users u
-    ON e.id = u.education_id
-GROUP BY e.education_name
-ORDER BY percentage DESC;
+SELECT *
+FROM `crediu-504100.Crediu.Educations`
+WHERE education = 'SMA';
 ```
 
 ---
 
 # Reporting Usage
 
-This table is commonly used in:
+This table is frequently used in:
 
-- Customer Demographics Dashboard
+- Applicant Demographics
+- Customer Profile Report
+- Education Distribution
 - Executive Dashboard
-- Customer Segmentation Report
-- Marketing Analysis
-- Loan Approval Analysis
-- Credit Risk Analysis
 
 ---
 
 # KPIs Supported
 
-- Customers by Education
-- Loan Applications by Education
-- Approval Rate by Education
-- Average Loan Amount by Education
+- Total Education Levels
+- Applications by Education Level
 - Customer Distribution by Education
+- Education Demographics
 
 ---
 
 # ETL Considerations
 
-- Load education master data before customer data.
-- Prevent duplicate education names.
-- Preserve standardized naming conventions.
-- Validate foreign key references from the Users table.
+- Preserve education codes.
+- Prevent duplicate education codes.
+- Standardize education names.
+- Validate education references before loading applications.
 
 ---
 
@@ -266,7 +231,7 @@ This table is commonly used in:
 
 | Classification | Description |
 |----------------|-------------|
-| Internal | Reference master data |
+| Internal | Master reference data |
 
 ---
 
@@ -276,7 +241,7 @@ This table is commonly used in:
 |------|--------|
 | Retention Period | Permanent |
 | Archive Policy | Not Applicable |
-| Deletion Policy | Administrative update only |
+| Deletion Policy | Soft Delete Recommended |
 
 ---
 
@@ -284,37 +249,37 @@ This table is commonly used in:
 
 ### Depends On
 
-None
+- None
 
 ### Referenced By
 
-- users
+- application
 
 ---
 
 # AI & RAG Notes
 
-The **Educations** table provides standardized educational categories that enable AI systems to:
+The **Educations** table provides standardized education level information used throughout the loan application process.
 
-- Generate demographic SQL queries.
-- Segment customers by education level.
-- Produce education-based reports.
-- Support business intelligence dashboards.
-- Recommend joins with customer data.
-- Improve customer profile analysis.
+It enables AI systems to:
+
+- Generate BigQuery SQL involving education data.
+- Analyze applicant demographics.
+- Produce education distribution reports.
+- Join education information with application records.
+- Support customer profile analytics.
 
 ---
 
 # Related Documentation
 
+- Application Table
 - Users Table
 - Database Schema
 - Relationship Matrix
-- Data Dictionary
-- Customer Demographics Dashboard
 
 ---
 
 # Summary
 
-The **Educations** table is a master reference table containing standardized education levels used across the Loan Management System. It supports consistent customer profiling, demographic reporting, business intelligence, and AI-assisted analytics while maintaining data quality and referential integrity.
+The **Educations** table is a master reference table containing standardized education levels. It supports consistent data entry, customer demographic analysis, reporting, and AI-assisted SQL generation by providing a common reference for applicant education information.

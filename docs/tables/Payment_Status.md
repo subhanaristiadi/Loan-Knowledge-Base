@@ -12,26 +12,26 @@
 
 # Overview
 
-The **Payment Status** table is a master reference table that defines the valid statuses for loan payment transactions.
+The **Payment Status** table stores the master list of payment statuses used throughout the Loan Management System.
 
-Instead of storing payment status values directly in the **Payments** table, the system references this table to ensure standardized status management, improve data quality, and simplify reporting.
+It serves as a reference table that standardizes the status of every loan payment, ensuring consistent repayment tracking, reporting, and collection activities.
 
-This table is essential for monitoring repayment progress, collection activities, and payment performance.
+Each payment status is identified by a unique status code.
 
 ---
 
 # Business Purpose
 
-The Payment Status table standardizes the status of payment transactions throughout the Loan Management System.
+The Payment Status table maintains standardized payment status information.
 
 Business objectives include:
 
-- Standardizing payment status values
-- Preventing inconsistent payment records
-- Supporting repayment monitoring
-- Improving collection reporting
-- Enabling payment analytics
-- Maintaining referential integrity
+- Standardizing payment statuses
+- Supporting repayment tracking
+- Supporting collection processes
+- Supporting payment reporting
+- Preventing inconsistent status values
+- Supporting business analytics
 
 ---
 
@@ -42,9 +42,9 @@ Business objectives include:
 | Table Name | payment_status |
 | Module | Master Data |
 | Type | Master Table |
-| Primary Key | id |
+| Primary Key | payment_status_code |
 | Parent Table | None |
-| Child Table | payments |
+| Child Tables | payments |
 | Estimated Volume | Very Low |
 | Update Frequency | Rare |
 
@@ -54,14 +54,14 @@ Business objectives include:
 
 | Column | Data Type | Nullable | PK | FK | Description |
 |----------|----------|----------|----|----|-------------|
-| id | BIGINT | No | ✓ | | Payment status identifier |
-| status_name | VARCHAR(50) | No | | | Payment status name |
+| payment_status_code | INTEGER | No | ✓ | | Unique payment status identifier |
+| payment | STRING | No | | | Payment status name |
 
 ---
 
 # Column Descriptions
 
-## id
+## payment_status_code
 
 **Description**
 
@@ -69,32 +69,30 @@ Unique identifier for each payment status.
 
 **Business Rules**
 
-- Auto-generated
-- Unique
-- Immutable
+- Must be unique
+- Cannot be NULL
+- Immutable after creation
 
 ---
 
-## status_name
+## payment
 
 **Description**
 
-Defines the business status of a payment transaction.
+Descriptive name of the payment status.
 
-Typical values:
+Example values:
 
-- Pending
-- Paid
-- Late
-- Failed
-- Cancelled
+- grace
+- ontime
+- notpaid
+- late
 
 **Business Rules**
 
 - Required
-- Must be unique
-- Use standardized naming
-- Maintain consistent terminology across the system
+- Cannot be NULL
+- Should contain standardized payment status names
 
 ---
 
@@ -102,7 +100,13 @@ Typical values:
 
 | Column | Description |
 |---------|-------------|
-| id | Unique payment status identifier |
+| payment_status_code | Unique payment status identifier |
+
+---
+
+# Foreign Keys
+
+None.
 
 ---
 
@@ -110,7 +114,7 @@ Typical values:
 
 | Related Table | Relationship | Description |
 |---------------|--------------|-------------|
-| payments | One-to-Many | One payment status may be used by many payment records |
+| payments | One-to-Many | One payment status can be referenced by many payment records |
 
 ---
 
@@ -118,9 +122,9 @@ Typical values:
 
 ```text
 payment_status
-        │
-        │ id
-        ▼
+       │
+       │ payment_status_code
+       ▼
 payments
 ```
 
@@ -128,35 +132,10 @@ payments
 
 # Business Rules
 
-- Every payment must have one valid payment status.
-- Payment statuses must be selected from this table.
-- Status names should not be duplicated.
-- Payment status changes should follow the organization's collection policies.
-- Master data should only be updated by authorized administrators.
-
----
-
-# Typical Payment Lifecycle
-
-```text
-Pending
-
-↓
-
-Paid
-
-OR
-
-Late
-
-↓
-
-Failed
-
-OR
-
-Cancelled
-```
+- Every payment status must have a unique identifier.
+- Payment status names should be standardized.
+- Every payment should reference a valid payment status.
+- Payment status records should not be deleted if they are referenced by payment transactions.
 
 ---
 
@@ -164,9 +143,9 @@ Cancelled
 
 | Rule | Description |
 |------|-------------|
-| Required Status | status_name cannot be NULL |
-| Unique Status | Duplicate status names are not allowed |
-| Standard Naming | Use approved payment status values |
+| Required Status Code | payment_status_code cannot be NULL |
+| Required Status Name | payment cannot be NULL |
+| Unique Status Code | payment_status_code must be unique |
 
 ---
 
@@ -174,15 +153,8 @@ Cancelled
 
 | Constraint | Description |
 |------------|-------------|
-| PRIMARY KEY | id |
-| UNIQUE | status_name |
-| NOT NULL | status_name |
-
-Example:
-
-```sql
-UNIQUE (status_name)
-```
+| PRIMARY KEY | payment_status_code |
+| NOT NULL | Required columns |
 
 ---
 
@@ -190,20 +162,8 @@ UNIQUE (status_name)
 
 | Index | Columns | Purpose |
 |---------|----------|---------|
-| pk_payment_status | id | Primary key lookup |
-| idx_payment_status_name | status_name | Status lookup |
-
----
-
-# Sample Records
-
-| id | status_name |
-|---:|-------------|
-| 1 | Pending |
-| 2 | Paid |
-| 3 | Late |
-| 4 | Failed |
-| 5 | Cancelled |
+| pk_payment_status | payment_status_code | Primary key lookup |
+| idx_payment_status_name | payment | Payment status search |
 
 ---
 
@@ -213,86 +173,59 @@ UNIQUE (status_name)
 
 ```sql
 SELECT *
-FROM payment_status;
+FROM `crediu-504100.Crediu.Payment Status`;
 ```
 
 ---
 
-## Number of Payments by Status
+## Count Payment Statuses
 
 ```sql
 SELECT
-    ps.status_name,
-    COUNT(p.id) AS total_payments
-FROM payment_status ps
-LEFT JOIN payments p
-    ON ps.id = p.payment_status_id
-GROUP BY ps.status_name
-ORDER BY total_payments DESC;
+    COUNT(*) AS total_payment_statuses
+FROM `crediu-504100.Crediu.Payment Status`;
 ```
 
 ---
 
-## Total Amount Paid by Status
+## Find a Payment Status
 
 ```sql
-SELECT
-    ps.status_name,
-    SUM(p.payment_amount) AS total_amount
-FROM payments p
-JOIN payment_status ps
-    ON p.payment_status_id = ps.id
-GROUP BY ps.status_name
-ORDER BY total_amount DESC;
-```
-
----
-
-## Overdue Payments
-
-```sql
-SELECT
-    p.*
-FROM payments p
-JOIN payment_status ps
-    ON p.payment_status_id = ps.id
-WHERE ps.status_name = 'Late';
+SELECT *
+FROM `crediu-504100.Crediu.Payment Status`
+WHERE payment = 'ontime';
 ```
 
 ---
 
 # Reporting Usage
 
-This table is commonly used in:
+This table is frequently used in:
 
 - Payment Dashboard
 - Collection Dashboard
-- Executive Dashboard
-- Payment Monitoring Report
-- Delinquency Analysis
+- Payment Status Distribution
 - Collection Performance Report
+- Executive Dashboard
 
 ---
 
 # KPIs Supported
 
-- Successful Payment Rate
+- On-Time Payment Rate
 - Late Payment Rate
-- Failed Payment Rate
-- Collection Rate
-- Total Payments
-- Outstanding Payments
-- Monthly Payment Performance
+- Unpaid Payment Rate
+- Grace Period Payment Rate
+- Payment Status Distribution
 
 ---
 
 # ETL Considerations
 
-- Load payment status master data before payment transactions.
-- Validate payment status references.
-- Prevent duplicate status values.
-- Standardize naming conventions.
-- Preserve historical status consistency.
+- Preserve payment status codes.
+- Prevent duplicate status codes.
+- Standardize payment status names.
+- Validate payment status references before loading payment data.
 
 ---
 
@@ -300,7 +233,7 @@ This table is commonly used in:
 
 | Classification | Description |
 |----------------|-------------|
-| Internal | Reference master data |
+| Internal | Master reference data |
 
 ---
 
@@ -310,7 +243,7 @@ This table is commonly used in:
 |------|--------|
 | Retention Period | Permanent |
 | Archive Policy | Not Applicable |
-| Deletion Policy | Administrative update only |
+| Deletion Policy | Soft Delete Recommended |
 
 ---
 
@@ -318,7 +251,7 @@ This table is commonly used in:
 
 ### Depends On
 
-None
+- None
 
 ### Referenced By
 
@@ -328,14 +261,15 @@ None
 
 # AI & RAG Notes
 
-The **Payment Status** table provides standardized payment state definitions that enable AI systems to:
+The **Payment Status** table provides standardized payment status information used throughout the Loan Management System.
 
+It enables AI systems to:
+
+- Generate BigQuery SQL involving payment status data.
 - Analyze repayment performance.
-- Generate payment status reports.
-- Produce SQL queries involving payment monitoring.
-- Support collection analytics.
-- Recommend joins with the Payments table.
-- Improve dashboard consistency through standardized status values.
+- Produce payment status reports.
+- Join payment status information with payment transactions.
+- Support collection and operational analytics.
 
 ---
 
@@ -343,14 +277,12 @@ The **Payment Status** table provides standardized payment state definitions tha
 
 - Payments Table
 - Payment Methods Table
-- Loan Status Table
+- Loans Table
 - Database Schema
 - Relationship Matrix
-- Collection Dashboard
-- Business Rules
 
 ---
 
 # Summary
 
-The **Payment Status** table is a master reference table that defines the valid lifecycle states for payment transactions within the Loan Management System. By centralizing payment status definitions, it ensures consistent repayment tracking, reliable reporting, accurate analytics, and strong referential integrity across operational systems, business intelligence solutions, and AI-powered applications.
+The **Payment Status** table is a master reference table containing standardized payment statuses. It ensures consistent classification of payment transactions, supports repayment monitoring and reporting, and provides a common reference for AI-assisted SQL generation.

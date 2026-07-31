@@ -57,17 +57,14 @@ Business objectives include:
 | Update Frequency | Continuous |
 
 ---
-
 # Table Structure
 
 | Column | Data Type | Nullable | PK | FK | Description |
 |----------|----------|----------|----|----|-------------|
-| id | BIGINT | No | ✓ | | Application ID |
-| user_id | BIGINT | No | | ✓ | Applicant |
-| reason_id | BIGINT | No | | ✓ | Loan purpose |
-| requested_amount | DECIMAL(15,2) | No | | | Requested loan amount |
-| application_date | DATE | No | | | Submission date |
-| status | VARCHAR(30) | No | | | Current application status |
+| application_history_id | STRING | No | ✓ | | Unique application history identifier |
+| created_date | TIMESTAMP | No | | | Date and time when the history record was created |
+| applications_codes | STRING | No | | | Application status or workflow code recorded for the history event |
+| application_id | BIGINT | No | | ✓ | References the associated application |
 
 ---
 

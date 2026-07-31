@@ -12,6 +12,404 @@
 
 # Overview
 
+The **Application** table stores information submitted by customers during the loan application process.
+
+Each record represents a loan application and contains applicant references, financial information, education level, loan purpose, and the application creation date.
+
+The table serves as the primary source for customer application data before loan approval and disbursement.
+
+---
+
+# Business Purpose
+
+The Application table records customer loan applications and provides the information required for credit assessment.
+
+Business objectives include:
+
+- Recording loan applications
+- Linking applications to customers
+- Recording customer income and expenses
+- Recording loan purpose
+- Recording applicant education level
+- Supporting loan approval analysis
+- Supporting reporting and analytics
+
+---
+
+# Table Information
+
+| Property | Value |
+|----------|-------|
+| Table Name | application |
+| Module | Loan Processing |
+| Type | Transaction Table |
+| Primary Key | applications_id |
+| Parent Table | users |
+| Child Tables | application_history, loans |
+| Estimated Volume | High |
+| Update Frequency | Continuous |
+
+---
+
+# Table Structure
+
+| Column | Data Type | Nullable | PK | FK | Description |
+|----------|----------|----------|----|----|-------------|
+| applications_id | BIGINT | No | ✓ | | Unique application identifier |
+| user_id | BIGINT | No | | ✓ | Applicant |
+| reason_id | BIGINT | No | | ✓ | Loan purpose |
+| education_code | INTEGER | No | | | Applicant education level |
+| created_date | TIMESTAMP | No | | | Application creation date |
+| income | NUMERIC | No | | | Monthly income |
+| expense | NUMERIC | No | | | Monthly expense |
+
+---
+
+# Column Descriptions
+
+## applications_id
+
+**Description**
+
+Unique identifier for each loan application.
+
+**Business Rules**
+
+- Auto-generated
+- Cannot be duplicated
+- Immutable after creation
+
+---
+
+## user_id
+
+**Description**
+
+References the customer submitting the application.
+
+**References**
+
+```
+users.user_id
+```
+
+**Business Rules**
+
+- Required
+- Must reference an existing customer
+
+---
+
+## reason_id
+
+**Description**
+
+References the customer's loan purpose.
+
+**References**
+
+```
+reason.reason_id
+```
+
+---
+
+## education_code
+
+**Description**
+
+Represents the applicant's education level.
+
+**Business Rules**
+
+- Required
+- References the education master data when available
+
+---
+
+## created_date
+
+**Description**
+
+Date and time when the application was created.
+
+**Business Rules**
+
+- Automatically generated
+- Cannot be NULL
+
+---
+
+## income
+
+**Description**
+
+Applicant's monthly income used during credit assessment.
+
+**Business Rules**
+
+- Must be greater than or equal to zero
+
+---
+
+## expense
+
+**Description**
+
+Applicant's monthly expenses declared during the application process.
+
+**Business Rules**
+
+- Must be greater than or equal to zero
+
+---
+
+# Primary Key
+
+| Column | Description |
+|---------|-------------|
+| applications_id | Unique application identifier |
+
+---
+
+# Foreign Keys
+
+| Column | References |
+|---------|------------|
+| user_id | users.user_id |
+| reason_id | reason.reason_id |
+
+---
+
+# Relationships
+
+| Related Table | Relationship | Description |
+|---------------|--------------|-------------|
+| users | Many-to-One | Application belongs to one customer |
+| reason | Many-to-One | Application has one loan purpose |
+| application_history | One-to-Many | Application history records |
+| loans | One-to-One (typically) | Approved application creates a loan |
+
+---
+
+# Entity Relationship
+
+```text
+users
+   │
+   │ user_id
+   ▼
+application
+   │
+   ├────────────► reason
+   │
+   ├────────────► application_history
+   │
+   └────────────► loans
+```
+
+---
+
+# Business Rules
+
+- Every application belongs to one customer.
+- Every application must have one loan purpose.
+- Income and expense must be valid numeric values.
+- Every application has one education code.
+- Approved applications may generate loans.
+- Application history is maintained separately.
+
+---
+
+# Data Quality Rules
+
+| Rule | Description |
+|------|-------------|
+| Required Customer | user_id cannot be NULL |
+| Required Loan Purpose | reason_id cannot be NULL |
+| Required Education | education_code cannot be NULL |
+| Valid Income | income >= 0 |
+| Valid Expense | expense >= 0 |
+| Required Created Date | created_date cannot be NULL |
+
+---
+
+# Constraints
+
+| Constraint | Description |
+|------------|-------------|
+| PRIMARY KEY | applications_id |
+| FOREIGN KEY | user_id |
+| FOREIGN KEY | reason_id |
+| NOT NULL | Required columns |
+
+---
+
+# Recommended Indexes
+
+| Index | Columns | Purpose |
+|---------|----------|---------|
+| pk_application | applications_id | Primary key lookup |
+| idx_application_user | user_id | Customer lookup |
+| idx_application_reason | reason_id | Loan purpose reporting |
+| idx_application_created | created_date | Date filtering |
+
+---
+
+# Common SQL Queries
+
+## View All Applications
+
+```sql
+SELECT *
+FROM `crediu-504100.Crediu.Application`;
+```
+
+---
+
+## Monthly Applications
+
+```sql
+SELECT
+    DATE_TRUNC(DATE(created_date), MONTH) AS application_month,
+    COUNT(*) AS total_applications
+FROM `crediu-504100.Crediu.Application`
+GROUP BY application_month
+ORDER BY application_month;
+```
+
+---
+
+## Average Income and Expense
+
+```sql
+SELECT
+    AVG(income) AS avg_income,
+    AVG(expense) AS avg_expense
+FROM `crediu-504100.Crediu.Application`;
+```
+
+---
+
+## Applications by Loan Purpose
+
+```sql
+SELECT
+    reason_id,
+    COUNT(*) AS total_applications
+FROM `crediu-504100.Crediu.Application`
+GROUP BY reason_id
+ORDER BY total_applications DESC;
+```
+
+---
+
+# Reporting Usage
+
+This table is frequently used in:
+
+- Loan Application Dashboard
+- Customer Financial Profile
+- Loan Purpose Analysis
+- Income Analysis
+- Application Trend Report
+
+---
+
+# KPIs Supported
+
+- Total Applications
+- Average Applicant Income
+- Average Applicant Expense
+- Applications by Loan Purpose
+- Applications by Education Level
+- Monthly Application Volume
+
+---
+
+# ETL Considerations
+
+- Preserve original application IDs.
+- Validate customer references.
+- Validate loan purpose references.
+- Validate numeric income and expense values.
+- Preserve original creation timestamps.
+
+---
+
+# Security Classification
+
+| Classification | Description |
+|----------------|-------------|
+| Confidential | Contains customer financial information |
+
+---
+
+# Data Retention
+
+| Item | Policy |
+|------|--------|
+| Retention Period | 7 Years |
+| Archive Policy | Annual |
+| Deletion Policy | Regulatory Compliance |
+
+---
+
+# Dependencies
+
+### Depends On
+
+- users
+- reason
+
+### Referenced By
+
+- application_history
+- loans
+
+---
+
+# AI & RAG Notes
+
+The **Application** table is the primary source of customer loan application information.
+
+It enables AI systems to:
+
+- Analyze applicant financial profiles.
+- Generate BigQuery SQL involving loan applications.
+- Analyze application trends.
+- Produce customer financial reports.
+- Support loan approval analytics.
+
+---
+
+# Related Documentation
+
+- Users Table
+- Loans Table
+- Application History Table
+- Reason Table
+- Database Schema
+- Relationship Matrix
+
+---
+
+# Summary
+
+The **Application** table records customer loan applications and stores applicant references, education level, financial information, loan purpose, and application timestamps. It serves as the central transaction table supporting credit assessment, loan processing, reporting, and AI-assisted SQL generation.# Application Table
+
+> **Project:** Loan Knowledge Base
+>
+> **Module:** Database Tables
+>
+> **Table:** `application`
+>
+> **Version:** 2.0
+
+---
+
+# Overview
+
 The **Application** table stores every loan application submitted by customers.
 
 It represents the first transactional entity in the loan lifecycle and serves as the bridge between customer information and approved loans.

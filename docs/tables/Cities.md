@@ -12,26 +12,25 @@
 
 # Overview
 
-The **Cities** table is a master reference table that stores city and municipality information used throughout the Loan Management System.
+The **Cities** table stores the list of cities used throughout the Loan Management System.
 
-Each city belongs to exactly one province and can be referenced by many customers.
+It functions as a master reference table that standardizes customer location information and supports geographical reporting and analysis.
 
-The table standardizes geographic information to ensure consistent reporting, filtering, and data integrity across the database.
+Each city belongs to a province and can be referenced by multiple customers.
 
 ---
 
 # Business Purpose
 
-The Cities table provides standardized geographic reference data for customer addresses and regional analysis.
+The Cities table maintains the master list of cities.
 
 Business objectives include:
 
-- Standardizing city names
-- Preventing duplicate city records
-- Supporting customer location management
-- Enabling regional reporting
-- Supporting dashboard filters
-- Maintaining referential integrity
+- Standardizing city information
+- Supporting customer location data
+- Supporting geographical reporting
+- Reducing duplicate location values
+- Supporting regional analysis
 
 ---
 
@@ -42,11 +41,11 @@ Business objectives include:
 | Table Name | cities |
 | Module | Master Data |
 | Type | Master Table |
-| Primary Key | id |
+| Primary Key | locations_id |
 | Parent Table | provinces |
-| Child Table | users |
-| Estimated Volume | Medium |
-| Update Frequency | Low |
+| Child Tables | users |
+| Estimated Volume | Low |
+| Update Frequency | Rare |
 
 ---
 
@@ -54,15 +53,15 @@ Business objectives include:
 
 | Column | Data Type | Nullable | PK | FK | Description |
 |----------|----------|----------|----|----|-------------|
-| id | BIGINT | No | ✓ | | City identifier |
-| province_id | BIGINT | No | | ✓ | Province identifier |
-| city_name | VARCHAR(150) | No | | | City or municipality name |
+| locations_id | BIGINT | No | ✓ | | Unique city identifier |
+| province_id | BIGINT | No | | ✓ | References the province |
+| city | STRING | No | | | City name |
 
 ---
 
 # Column Descriptions
 
-## id
+## locations_id
 
 **Description**
 
@@ -70,9 +69,9 @@ Unique identifier for each city.
 
 **Business Rules**
 
-- Auto-generated
-- Unique
-- Immutable
+- Must be unique
+- Cannot be NULL
+- Immutable after creation
 
 ---
 
@@ -84,38 +83,28 @@ References the province where the city is located.
 
 **References**
 
-```text
-provinces.id
+```
+provinces.province_id
 ```
 
 **Business Rules**
 
-- Province must exist
-- Required field
-- Foreign key enforced
+- Required
+- Must reference an existing province
 
 ---
 
-## city_name
+## city
 
 **Description**
 
-Official city or municipality name.
-
-Examples:
-
-- Jakarta Selatan
-- Bandung
-- Surabaya
-- Kupang
-- Denpasar
+Official name of the city.
 
 **Business Rules**
 
 - Required
-- Should be unique within the same province
-- Use official government naming
-- Remove leading and trailing spaces
+- Cannot be NULL
+- Should follow official naming conventions
 
 ---
 
@@ -123,7 +112,7 @@ Examples:
 
 | Column | Description |
 |---------|-------------|
-| id | Unique city identifier |
+| locations_id | Unique city identifier |
 
 ---
 
@@ -131,7 +120,7 @@ Examples:
 
 | Column | References |
 |---------|------------|
-| province_id | provinces.id |
+| province_id | provinces.province_id |
 
 ---
 
@@ -139,8 +128,8 @@ Examples:
 
 | Related Table | Relationship | Description |
 |---------------|--------------|-------------|
-| provinces | Many-to-One | City belongs to one province |
-| users | One-to-Many | One city may have many customers |
+| provinces | Many-to-One | Each city belongs to one province |
+| users | One-to-Many | One city can have many users |
 
 ---
 
@@ -148,13 +137,13 @@ Examples:
 
 ```text
 provinces
-     │
-     │ province_id
-     ▼
+      │
+      │ province_id
+      ▼
 cities
-     │
-     │ id
-     ▼
+      │
+      │ locations_id
+      ▼
 users
 ```
 
@@ -162,11 +151,10 @@ users
 
 # Business Rules
 
-- Every city must belong to one province.
-- A city cannot exist without a valid province.
-- City names should follow official administrative names.
-- Duplicate city names within the same province should not be allowed.
-- Customers must reference an existing city.
+- Every city belongs to one province.
+- City names should be standardized.
+- Every customer location should reference an existing city.
+- City records should not be deleted if referenced by users.
 
 ---
 
@@ -175,9 +163,8 @@ users
 | Rule | Description |
 |------|-------------|
 | Required Province | province_id cannot be NULL |
-| Required Name | city_name cannot be NULL |
-| Unique Combination | province_id + city_name should be unique |
-| Valid Province | Referenced province must exist |
+| Required City Name | city cannot be NULL |
+| Unique City ID | locations_id must be unique |
 
 ---
 
@@ -185,16 +172,9 @@ users
 
 | Constraint | Description |
 |------------|-------------|
-| PRIMARY KEY | id |
+| PRIMARY KEY | locations_id |
 | FOREIGN KEY | province_id |
 | NOT NULL | Required columns |
-| UNIQUE | province_id + city_name |
-
-Example:
-
-```sql
-UNIQUE (province_id, city_name)
-```
 
 ---
 
@@ -202,22 +182,9 @@ UNIQUE (province_id, city_name)
 
 | Index | Columns | Purpose |
 |---------|----------|---------|
-| pk_cities | id | Primary key lookup |
+| pk_cities | locations_id | Primary key lookup |
 | idx_cities_province | province_id | Province filtering |
-| idx_cities_name | city_name | City search |
-| idx_cities_province_name | province_id, city_name | Duplicate prevention and reporting |
-
----
-
-# Sample Records
-
-| id | province_id | city_name |
-|---:|------------:|-----------|
-| 1 | 31 | Jakarta Selatan |
-| 2 | 32 | Bandung |
-| 3 | 35 | Surabaya |
-| 4 | 53 | Kupang |
-| 5 | 51 | Denpasar |
+| idx_cities_name | city | City search |
 
 ---
 
@@ -227,7 +194,7 @@ UNIQUE (province_id, city_name)
 
 ```sql
 SELECT *
-FROM cities;
+FROM `crediu-504100.Crediu.Cities`;
 ```
 
 ---
@@ -236,79 +203,52 @@ FROM cities;
 
 ```sql
 SELECT
-    p.province_name,
-    c.city_name
-FROM cities c
-JOIN provinces p
-    ON c.province_id = p.id
-ORDER BY
-    p.province_name,
-    c.city_name;
-```
-
----
-
-## Number of Cities per Province
-
-```sql
-SELECT
-    p.province_name,
-    COUNT(c.id) AS total_cities
-FROM provinces p
-LEFT JOIN cities c
-    ON p.id = c.province_id
-GROUP BY p.province_name
+    province_id,
+    COUNT(*) AS total_cities
+FROM `crediu-504100.Crediu.Cities`
+GROUP BY province_id
 ORDER BY total_cities DESC;
 ```
 
 ---
 
-## Customers by City
+## Search City
 
 ```sql
-SELECT
-    c.city_name,
-    COUNT(u.id) AS total_customers
-FROM cities c
-LEFT JOIN users u
-    ON c.id = u.city_id
-GROUP BY c.city_name
-ORDER BY total_customers DESC;
+SELECT *
+FROM `crediu-504100.Crediu.Cities`
+WHERE city = 'Surabaya';
 ```
 
 ---
 
 # Reporting Usage
 
-This table is commonly used in:
+This table is frequently used in:
 
-- Customer Demographics
-- Geographic Analysis
-- Regional Performance Dashboard
-- Executive Dashboard
 - Customer Distribution Report
-- Loan Portfolio by Region
+- Regional Dashboard
+- Province Analysis
+- Customer Demographics
+- Geographic Reporting
 
 ---
 
 # KPIs Supported
 
-- Customers by City
-- Customers by Province
-- Loan Applications by City
-- Loan Portfolio by Region
-- Regional Approval Rate
-- Regional Collection Performance
+- Total Cities
+- Cities per Province
+- Customer Distribution by City
+- Regional Customer Coverage
 
 ---
 
 # ETL Considerations
 
-- Load provinces before cities.
-- Validate province references.
+- Preserve city identifiers.
+- Validate province references before loading.
+- Prevent duplicate city records.
 - Standardize city names.
-- Prevent duplicate records.
-- Preserve official administrative naming.
 
 ---
 
@@ -316,7 +256,7 @@ This table is commonly used in:
 
 | Classification | Description |
 |----------------|-------------|
-| Internal | Reference master data |
+| Internal | Master reference data |
 
 ---
 
@@ -326,7 +266,7 @@ This table is commonly used in:
 |------|--------|
 | Retention Period | Permanent |
 | Archive Policy | Not Applicable |
-| Deletion Policy | Soft delete or administrative update only |
+| Deletion Policy | Soft Delete Recommended |
 
 ---
 
@@ -344,13 +284,15 @@ This table is commonly used in:
 
 # AI & RAG Notes
 
-The **Cities** table provides standardized geographic information that enables AI systems to:
+The **Cities** table provides standardized geographical reference data for customer locations.
 
-- Generate location-based SQL queries.
-- Explain customer geographic distribution.
-- Support regional business analysis.
-- Recommend joins between customers, cities, and provinces.
-- Produce dashboards segmented by location.
+It enables AI systems to:
+
+- Generate BigQuery SQL involving customer locations.
+- Analyze customer distribution by city.
+- Produce regional reports.
+- Support geographical analytics.
+- Join customer and province information accurately.
 
 ---
 
@@ -360,11 +302,9 @@ The **Cities** table provides standardized geographic information that enables A
 - Users Table
 - Database Schema
 - Relationship Matrix
-- Data Dictionary
-- Executive Dashboard
 
 ---
 
 # Summary
 
-The **Cities** table is a master reference table that stores standardized city and municipality information. It maintains geographic consistency across the Loan Management System by linking each city to a province and serving as the location reference for customers, enabling accurate reporting, regional analysis, and reliable referential integrity.
+The **Cities** table is a master reference table containing standardized city information. It links cities to provinces and provides the geographical foundation for customer location management, reporting, analytics, and AI-assisted SQL generation.

@@ -12,27 +12,27 @@
 
 # Overview
 
-The **Loans** table stores all approved loan contracts within the Loan Management System.
+The **Loans** table stores approved loan records that have been created from customer loan applications.
 
-A loan record is created only after a customer's application has been successfully approved. It contains the official loan information used throughout the repayment period, including the approved amount, loan term, interest rate, current status, and repayment schedule.
+Each record contains loan information such as the associated application, loan status, credit score, loan period, interest rate, and disbursed amount.
 
-The Loans table is one of the core transactional tables in the database and serves as the foundation for payment processing, portfolio management, financial reporting, and business intelligence.
+The table represents the final stage of the loan approval process and is the primary source for loan portfolio analysis.
 
 ---
 
 # Business Purpose
 
-The Loans table manages approved loans and their lifecycle.
+The Loans table records approved loans and their financial attributes.
 
 Business objectives include:
 
 - Recording approved loans
-- Tracking loan balances
-- Managing repayment schedules
-- Supporting payment processing
-- Monitoring loan performance
-- Providing portfolio analytics
-- Supporting financial reporting
+- Tracking loan status
+- Recording customer credit scores
+- Recording loan terms
+- Recording loan interest rates
+- Recording disbursed loan amounts
+- Supporting reporting and portfolio analytics
 
 ---
 
@@ -41,11 +41,11 @@ Business objectives include:
 | Property | Value |
 |----------|-------|
 | Table Name | loans |
-| Module | Loan Management |
+| Module | Loan Processing |
 | Type | Transaction Table |
-| Primary Key | id |
+| Primary Key | loan_id |
 | Parent Table | application |
-| Child Table | payments |
+| Child Tables | None |
 | Estimated Volume | High |
 | Update Frequency | Continuous |
 
@@ -55,20 +55,19 @@ Business objectives include:
 
 | Column | Data Type | Nullable | PK | FK | Description |
 |----------|----------|----------|----|----|-------------|
-| id | BIGINT | No | ✓ | | Loan identifier |
-| application_id | BIGINT | No | | ✓ | Approved application |
-| loan_status_id | BIGINT | No | | ✓ | Current loan status |
-| approved_amount | DECIMAL(15,2) | No | | | Approved loan amount |
-| interest_rate | DECIMAL(5,2) | No | | | Annual interest rate (%) |
-| loan_term | INTEGER | No | | | Loan duration (months) |
-| approval_date | DATE | No | | | Approval date |
-| maturity_date | DATE | No | | | Loan maturity date |
+| loan_id | STRING | No | ✓ | | Unique loan identifier |
+| applications_id | BIGINT | No | | ✓ | References the associated application |
+| loan_status_code | INTEGER | No | | ✓ | References the current loan status |
+| credit_score | INTEGER | No | | | Customer credit score |
+| loan_period | INTEGER | No | | | Loan term in months |
+| interest | NUMERIC | No | | | Annual interest rate |
+| disbursed_amount | NUMERIC | No | | | Amount disbursed to the customer |
 
 ---
 
 # Column Descriptions
 
-## id
+## loan_id
 
 **Description**
 
@@ -76,13 +75,13 @@ Unique identifier for each loan.
 
 **Business Rules**
 
-- Auto-generated
-- Unique
-- Immutable
+- Must be unique
+- Cannot be NULL
+- Immutable after creation
 
 ---
 
-## application_id
+## applications_id
 
 **Description**
 
@@ -90,113 +89,85 @@ References the approved loan application.
 
 **References**
 
-```text
-application.id
+```
+application.applications_id
 ```
 
 **Business Rules**
 
-- Must reference an approved application.
-- One approved application should normally create one loan.
-- Required field.
+- Required
+- Must reference an existing application
 
 ---
 
-## loan_status_id
+## loan_status_code
 
 **Description**
 
-Current lifecycle status of the loan.
+References the current loan status.
 
 **References**
 
-```text
-loan_status.id
 ```
-
-Typical values:
-
-- Active
-- Paid Off
-- Defaulted
-- Closed
-- Written Off
-
----
-
-## approved_amount
-
-**Description**
-
-Final loan amount approved after underwriting.
+loan_status.loan_status_code
+```
 
 **Business Rules**
 
-- Greater than zero
-- Cannot exceed business limits
-- May differ from requested amount
+- Required
+- Must reference a valid loan status
 
 ---
 
-## interest_rate
+## credit_score
+
+**Description**
+
+Credit score assigned during the loan approval process.
+
+**Business Rules**
+
+- Required
+- Numeric value used for credit assessment
+
+---
+
+## loan_period
+
+**Description**
+
+Loan repayment period expressed in months.
+
+**Business Rules**
+
+- Required
+- Must be greater than zero
+
+---
+
+## interest
 
 **Description**
 
 Annual interest rate applied to the loan.
 
-Example:
-
-```text
-12.50
-```
-
-Business Rules:
-
-- Positive value
-- Defined by lending policy
-- Stored as percentage
-
----
-
-## loan_term
-
-**Description**
-
-Repayment duration in months.
-
-Examples:
-
-- 6
-- 12
-- 24
-- 36
-- 60
-
----
-
-## approval_date
-
-**Description**
-
-Official approval date.
-
-Business Rules:
+**Business Rules**
 
 - Required
-- Cannot be after maturity date
+- Must be greater than or equal to zero
 
 ---
 
-## maturity_date
+## disbursed_amount
 
 **Description**
 
-Scheduled final repayment date.
+Amount of money disbursed to the customer.
 
-Business Rules:
+**Business Rules**
 
-- Must be later than approval date
-- Calculated using loan term
+- Required
+- Must be greater than zero
 
 ---
 
@@ -204,7 +175,7 @@ Business Rules:
 
 | Column | Description |
 |---------|-------------|
-| id | Unique loan identifier |
+| loan_id | Unique loan identifier |
 
 ---
 
@@ -212,8 +183,8 @@ Business Rules:
 
 | Column | References |
 |---------|------------|
-| application_id | application.id |
-| loan_status_id | loan_status.id |
+| applications_id | application.applications_id |
+| loan_status_code | loan_status.loan_status_code |
 
 ---
 
@@ -221,9 +192,8 @@ Business Rules:
 
 | Related Table | Relationship | Description |
 |---------------|--------------|-------------|
-| application | One-to-One (typically) | Loan originates from an approved application |
-| loan_status | Many-to-One | Loan lifecycle status |
-| payments | One-to-Many | Loan repayment transactions |
+| application | One-to-One (typically) | One approved application creates one loan |
+| loan_status | Many-to-One | Many loans can share the same status |
 
 ---
 
@@ -232,58 +202,23 @@ Business Rules:
 ```text
 application
       │
-      │ application_id
+      │ applications_id
       ▼
 loans
       │
-      ├────────────► loan_status
-      │
-      └────────────► payments
+      └────────────► loan_status
 ```
 
 ---
 
 # Business Rules
 
-- Every loan must originate from an approved application.
-- Every loan must have one valid status.
-- Approved amount must be positive.
-- Loan term must be greater than zero.
-- Maturity date must occur after approval date.
-- Loan status must exist in the Loan Status table.
-- Every payment must reference an existing loan.
-
----
-
-# Loan Lifecycle
-
-```text
-Application Approved
-
-↓
-
-Loan Created
-
-↓
-
-Active
-
-↓
-
-Paid Off
-
-OR
-
-Defaulted
-
-↓
-
-Closed
-
-OR
-
-Written Off
-```
+- Every loan must originate from an application.
+- Every loan must have one loan status.
+- Credit scores must be valid numeric values.
+- Loan period must be greater than zero.
+- Interest rates must be valid.
+- Disbursed amount must be greater than zero.
 
 ---
 
@@ -291,12 +226,12 @@ Written Off
 
 | Rule | Description |
 |------|-------------|
-| Approved Application | application_id must reference an approved application |
-| Positive Amount | approved_amount > 0 |
-| Positive Interest | interest_rate >= 0 |
-| Valid Loan Term | loan_term > 0 |
-| Valid Dates | maturity_date > approval_date |
-| Valid Status | loan_status_id must exist |
+| Required Application | applications_id cannot be NULL |
+| Required Loan Status | loan_status_code cannot be NULL |
+| Required Credit Score | credit_score cannot be NULL |
+| Positive Loan Period | loan_period > 0 |
+| Positive Interest | interest >= 0 |
+| Positive Disbursed Amount | disbursed_amount > 0 |
 
 ---
 
@@ -304,20 +239,10 @@ Written Off
 
 | Constraint | Description |
 |------------|-------------|
-| PRIMARY KEY | id |
-| FOREIGN KEY | application_id |
-| FOREIGN KEY | loan_status_id |
+| PRIMARY KEY | loan_id |
+| FOREIGN KEY | applications_id |
+| FOREIGN KEY | loan_status_code |
 | NOT NULL | Required columns |
-| CHECK | Positive amount |
-| CHECK | Positive loan term |
-
-Example:
-
-```sql
-CHECK (approved_amount > 0)
-
-CHECK (loan_term > 0)
-```
 
 ---
 
@@ -325,21 +250,10 @@ CHECK (loan_term > 0)
 
 | Index | Columns | Purpose |
 |---------|----------|---------|
-| pk_loans | id | Primary key lookup |
-| idx_loans_application | application_id | Application lookup |
-| idx_loans_status | loan_status_id | Portfolio reporting |
-| idx_loans_approval | approval_date | Time-series reporting |
-| idx_loans_maturity | maturity_date | Loan monitoring |
-
----
-
-# Sample Records
-
-| id | application_id | loan_status_id | approved_amount | interest_rate | loan_term | approval_date | maturity_date |
-|---:|---------------:|---------------:|----------------:|--------------:|----------:|---------------|---------------|
-| 1 | 102 | 1 | 15000.00 | 12.50 | 24 | 2026-01-15 | 2028-01-15 |
-| 2 | 110 | 1 | 8000.00 | 10.00 | 12 | 2026-02-01 | 2027-02-01 |
-| 3 | 115 | 2 | 25000.00 | 11.75 | 36 | 2025-03-20 | 2028-03-20 |
+| pk_loans | loan_id | Primary key lookup |
+| idx_loans_application | applications_id | Application lookup |
+| idx_loans_status | loan_status_code | Status reporting |
+| idx_loans_credit_score | credit_score | Credit score analysis |
 
 ---
 
@@ -349,110 +263,83 @@ CHECK (loan_term > 0)
 
 ```sql
 SELECT *
-FROM loans;
+FROM `crediu-504100.Crediu.Loans`;
 ```
 
 ---
 
-## Active Loans
+## Loan Portfolio by Status
 
 ```sql
 SELECT
-    l.*
-FROM loans l
-JOIN loan_status ls
-    ON l.loan_status_id = ls.id
-WHERE ls.status_name = 'Active';
+    loan_status_code,
+    COUNT(*) AS total_loans
+FROM `crediu-504100.Crediu.Loans`
+GROUP BY loan_status_code;
 ```
 
 ---
 
-## Loan Portfolio Value
+## Average Credit Score
 
 ```sql
 SELECT
-    SUM(approved_amount) AS total_portfolio
-FROM loans;
+    AVG(credit_score) AS average_credit_score
+FROM `crediu-504100.Crediu.Loans`;
 ```
 
 ---
 
-## Loans by Status
+## Average Interest Rate
 
 ```sql
 SELECT
-    ls.status_name,
-    COUNT(*) AS total_loans,
-    SUM(l.approved_amount) AS portfolio_value
-FROM loans l
-JOIN loan_status ls
-    ON l.loan_status_id = ls.id
-GROUP BY ls.status_name
-ORDER BY portfolio_value DESC;
+    AVG(interest) AS average_interest_rate
+FROM `crediu-504100.Crediu.Loans`;
 ```
 
 ---
 
-## Monthly Loan Approvals
+## Total Disbursed Amount
 
 ```sql
 SELECT
-    DATE_TRUNC('month', approval_date) AS month,
-    COUNT(*) AS approved_loans,
-    SUM(approved_amount) AS total_amount
-FROM loans
-GROUP BY month
-ORDER BY month;
-```
-
----
-
-## Average Loan Amount
-
-```sql
-SELECT
-    ROUND(AVG(approved_amount),2) AS average_loan_amount
-FROM loans;
+    SUM(disbursed_amount) AS total_disbursed
+FROM `crediu-504100.Crediu.Loans`;
 ```
 
 ---
 
 # Reporting Usage
 
-This table is commonly used in:
+This table is frequently used in:
 
 - Loan Portfolio Dashboard
+- Credit Score Analysis
+- Loan Performance Report
+- Interest Rate Analysis
 - Executive Dashboard
-- Financial Performance Dashboard
-- Loan Monitoring Report
-- Credit Risk Dashboard
-- Collection Dashboard
-- Regulatory Reporting
 
 ---
 
 # KPIs Supported
 
 - Total Loans
-- Active Loans
-- Loan Portfolio Value
-- Average Loan Amount
-- Outstanding Balance
-- Paid-Off Loans
-- Default Rate
-- Portfolio Growth
-- Monthly Loan Disbursement
+- Total Disbursed Amount
+- Average Credit Score
+- Average Interest Rate
+- Average Loan Period
+- Loan Status Distribution
 
 ---
 
 # ETL Considerations
 
-- Load approved applications before loans.
-- Validate foreign keys.
-- Ensure approved amounts are positive.
-- Calculate maturity dates consistently.
-- Preserve approval history.
-- Standardize interest rate precision.
+- Preserve loan identifiers.
+- Validate application references.
+- Validate loan status references.
+- Validate numeric financial values.
+- Preserve original loan records.
 
 ---
 
@@ -460,7 +347,7 @@ This table is commonly used in:
 
 | Classification | Description |
 |----------------|-------------|
-| Confidential | Financial loan information |
+| Confidential | Contains customer loan information |
 
 ---
 
@@ -468,8 +355,8 @@ This table is commonly used in:
 
 | Item | Policy |
 |------|--------|
-| Retention Period | 10 Years |
-| Archive Policy | Annual Archive |
+| Retention Period | 7 Years |
+| Archive Policy | Annual |
 | Deletion Policy | Regulatory Compliance |
 
 ---
@@ -483,20 +370,22 @@ This table is commonly used in:
 
 ### Referenced By
 
-- payments
+- None
 
 ---
 
 # AI & RAG Notes
 
-The **Loans** table is the central financial entity in the Loan Management System and is essential for AI-assisted analytics. It enables AI systems to:
+The **Loans** table contains approved loan records and financial information.
 
-- Calculate loan portfolio metrics.
-- Generate repayment and exposure reports.
-- Analyze lending performance.
-- Produce SQL for financial reporting.
-- Explain relationships between applications, loans, statuses, and payments.
-- Support forecasting, risk analysis, and executive dashboards.
+It enables AI systems to:
+
+- Generate BigQuery SQL involving loan data.
+- Analyze loan portfolio performance.
+- Calculate disbursed loan amounts.
+- Analyze credit score distributions.
+- Produce loan performance reports.
+- Support lending analytics.
 
 ---
 
@@ -504,15 +393,12 @@ The **Loans** table is the central financial entity in the Loan Management Syste
 
 - Application Table
 - Loan Status Table
-- Payments Table
+- Users Table
 - Database Schema
 - Relationship Matrix
-- Loan Lifecycle
-- Business Rules
-- Executive Dashboard
 
 ---
 
 # Summary
 
-The **Loans** table stores all approved loan contracts and serves as the core transactional entity for loan management. It connects approved applications with repayment activities, tracks the complete loan lifecycle, supports portfolio management, financial reporting, and business intelligence, and provides the foundation for AI-assisted analysis and decision-making within the Loan Management System.
+The **Loans** table stores approved loan records, including their associated applications, loan status, credit scores, loan terms, interest rates, and disbursed amounts. It serves as the primary transaction table for loan portfolio management, reporting, business analytics, and AI-assisted SQL generation.

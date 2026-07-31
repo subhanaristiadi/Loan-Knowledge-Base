@@ -12,26 +12,26 @@
 
 # Overview
 
-The **Payments** table stores every repayment transaction made against approved loans.
+The **Payments** table stores loan repayment transactions for every loan in the Loan Management System.
 
-Each payment record represents a financial transaction associated with a loan and contains information such as the payment amount, payment date, payment method, and payment status.
+Each record represents a scheduled or completed installment payment and contains information about payment amounts, due dates, payment status, and payment methods.
 
-This table is the primary source for repayment tracking, collection analysis, cash flow reporting, and loan performance monitoring.
+The table serves as the primary source for repayment tracking, collection monitoring, and financial reporting.
 
 ---
 
 # Business Purpose
 
-The Payments table records all loan repayment transactions.
+The Payments table records loan repayment information.
 
 Business objectives include:
 
-- Recording loan repayments
-- Tracking outstanding balances
-- Monitoring collection performance
-- Supporting financial reporting
-- Measuring repayment behavior
-- Enabling payment analytics
+- Recording loan installment payments
+- Tracking payment schedules
+- Monitoring overdue payments
+- Recording payment methods
+- Supporting collection activities
+- Supporting financial reporting and analytics
 
 ---
 
@@ -40,9 +40,9 @@ Business objectives include:
 | Property | Value |
 |----------|-------|
 | Table Name | payments |
-| Module | Payment Management |
+| Module | Payment |
 | Type | Transaction Table |
-| Primary Key | id |
+| Primary Key | payment_id |
 | Parent Table | loans |
 | Child Tables | None |
 | Estimated Volume | Very High |
@@ -54,18 +54,24 @@ Business objectives include:
 
 | Column | Data Type | Nullable | PK | FK | Description |
 |----------|----------|----------|----|----|-------------|
-| id | BIGINT | No | ✓ | | Payment identifier |
-| loan_id | BIGINT | No | | ✓ | Loan reference |
-| payment_method_id | BIGINT | No | | ✓ | Payment method |
-| payment_status_id | BIGINT | No | | ✓ | Payment status |
-| payment_amount | DECIMAL(15,2) | No | | | Amount paid |
-| payment_date | DATE | No | | | Payment date |
+| payment_id | BIGINT | No | ✓ | | Unique payment identifier |
+| loan_id | STRING | No | | ✓ | References the associated loan |
+| payment_number | INTEGER | No | | | Installment sequence number |
+| payment_status_code | INTEGER | No | | ✓ | References the payment status |
+| payment_timestamp | TIMESTAMP | Yes | | | Date and time the payment was made |
+| due_timestamp | TIMESTAMP | No | | | Scheduled payment due date |
+| principal_amount | NUMERIC | No | | | Principal portion of the installment |
+| interest_amount | NUMERIC | No | | | Interest portion of the installment |
+| late_fee | NUMERIC | No | | | Late payment fee |
+| due_amount | NUMERIC | No | | | Total amount due |
+| paid_amount | NUMERIC | No | | | Amount actually paid |
+| payment_method_id | INTEGER | Yes | | ✓ | References the payment method |
 
 ---
 
 # Column Descriptions
 
-## id
+## payment_id
 
 **Description**
 
@@ -73,9 +79,9 @@ Unique identifier for each payment transaction.
 
 **Business Rules**
 
-- Auto-generated
-- Unique
-- Immutable
+- Must be unique
+- Cannot be NULL
+- Immutable after creation
 
 ---
 
@@ -83,19 +89,91 @@ Unique identifier for each payment transaction.
 
 **Description**
 
-References the loan receiving the payment.
+References the loan associated with the payment.
 
 **References**
 
-```text
-loans.id
+```
+loans.loan_id
 ```
 
-**Business Rules**
+---
 
-- Loan must exist.
-- Required field.
-- Foreign key enforced.
+## payment_number
+
+**Description**
+
+Sequential installment number for the loan.
+
+---
+
+## payment_status_code
+
+**Description**
+
+References the current payment status.
+
+**References**
+
+```
+payment_status.payment_status_code
+```
+
+---
+
+## payment_timestamp
+
+**Description**
+
+Date and time when the payment was completed.
+
+---
+
+## due_timestamp
+
+**Description**
+
+Scheduled due date and time for the payment.
+
+---
+
+## principal_amount
+
+**Description**
+
+Principal amount due for the installment.
+
+---
+
+## interest_amount
+
+**Description**
+
+Interest amount charged for the installment.
+
+---
+
+## late_fee
+
+**Description**
+
+Late payment penalty charged when applicable.
+
+---
+
+## due_amount
+
+**Description**
+
+Total amount that should be paid for the installment.
+
+---
+
+## paid_amount
+
+**Description**
+
+Actual amount received from the customer.
 
 ---
 
@@ -103,71 +181,13 @@ loans.id
 
 **Description**
 
-References the payment method used.
+References the payment method used for the transaction.
 
 **References**
 
-```text
-payment_methods.id
 ```
-
-Example values:
-
-- Bank Transfer
-- Cash
-- Credit Card
-- Debit Card
-- Mobile Banking
-
----
-
-## payment_status_id
-
-**Description**
-
-References the payment status.
-
-**References**
-
-```text
-payment_status.id
+payment_methods.payment_method_id
 ```
-
-Typical values:
-
-- Pending
-- Paid
-- Late
-- Failed
-- Cancelled
-
----
-
-## payment_amount
-
-**Description**
-
-Amount received for the payment.
-
-**Business Rules**
-
-- Greater than zero.
-- Required.
-- Currency follows organizational standards.
-
----
-
-## payment_date
-
-**Description**
-
-Date the payment was received.
-
-**Business Rules**
-
-- Required.
-- Cannot be in the future.
-- Should not occur before the loan approval date.
 
 ---
 
@@ -175,7 +195,7 @@ Date the payment was received.
 
 | Column | Description |
 |---------|-------------|
-| id | Unique payment identifier |
+| payment_id | Unique payment identifier |
 
 ---
 
@@ -183,9 +203,9 @@ Date the payment was received.
 
 | Column | References |
 |---------|------------|
-| loan_id | loans.id |
-| payment_method_id | payment_methods.id |
-| payment_status_id | payment_status.id |
+| loan_id | loans.loan_id |
+| payment_status_code | payment_status.payment_status_code |
+| payment_method_id | payment_methods.payment_method_id |
 
 ---
 
@@ -193,9 +213,9 @@ Date the payment was received.
 
 | Related Table | Relationship | Description |
 |---------------|--------------|-------------|
-| loans | Many-to-One | Payment belongs to one loan |
-| payment_methods | Many-to-One | Payment uses one payment method |
-| payment_status | Many-to-One | Payment has one payment status |
+| loans | Many-to-One | Many payments belong to one loan |
+| payment_status | Many-to-One | Many payments share one payment status |
+| payment_methods | Many-to-One | Many payments may use the same payment method |
 
 ---
 
@@ -207,55 +227,19 @@ loans
    │ loan_id
    ▼
 payments
-   │
-   ├────────────► payment_methods
-   │
-   └────────────► payment_status
+   ├────────────► payment_status
+   └────────────► payment_methods
 ```
 
 ---
 
 # Business Rules
 
-- Every payment belongs to one loan.
-- Payment amount must be greater than zero.
-- Every payment must have a payment method.
-- Every payment must have a payment status.
-- Payment cannot exist without an associated loan.
-- Payment history should never be deleted.
-- Multiple payments may exist for a single loan.
-
----
-
-# Payment Lifecycle
-
-```text
-Loan Created
-
-↓
-
-Scheduled Payment
-
-↓
-
-Pending
-
-↓
-
-Paid
-
-OR
-
-Late
-
-↓
-
-Failed
-
-OR
-
-Cancelled
-```
+- Every payment must belong to one loan.
+- Payment numbers should be sequential within a loan.
+- Due amount should equal principal amount, interest amount, and applicable late fees.
+- Paid amount cannot be negative.
+- Payment methods should reference valid master data.
 
 ---
 
@@ -263,11 +247,13 @@ Cancelled
 
 | Rule | Description |
 |------|-------------|
-| Valid Loan | loan_id must exist |
-| Valid Method | payment_method_id must exist |
-| Valid Status | payment_status_id must exist |
-| Positive Amount | payment_amount > 0 |
-| Valid Date | payment_date cannot be in the future |
+| Required Loan | loan_id cannot be NULL |
+| Required Payment Number | payment_number cannot be NULL |
+| Required Due Date | due_timestamp cannot be NULL |
+| Positive Principal | principal_amount >= 0 |
+| Positive Interest | interest_amount >= 0 |
+| Positive Due Amount | due_amount >= 0 |
+| Positive Paid Amount | paid_amount >= 0 |
 
 ---
 
@@ -275,18 +261,11 @@ Cancelled
 
 | Constraint | Description |
 |------------|-------------|
-| PRIMARY KEY | id |
+| PRIMARY KEY | payment_id |
 | FOREIGN KEY | loan_id |
+| FOREIGN KEY | payment_status_code |
 | FOREIGN KEY | payment_method_id |
-| FOREIGN KEY | payment_status_id |
 | NOT NULL | Required columns |
-| CHECK | Positive payment amount |
-
-Example:
-
-```sql
-CHECK (payment_amount > 0)
-```
 
 ---
 
@@ -294,21 +273,11 @@ CHECK (payment_amount > 0)
 
 | Index | Columns | Purpose |
 |---------|----------|---------|
-| pk_payments | id | Primary key lookup |
+| pk_payments | payment_id | Primary key lookup |
 | idx_payments_loan | loan_id | Loan lookup |
-| idx_payments_status | payment_status_id | Payment reporting |
-| idx_payments_method | payment_method_id | Method analysis |
-| idx_payments_date | payment_date | Time-series reporting |
-
----
-
-# Sample Records
-
-| id | loan_id | payment_method_id | payment_status_id | payment_amount | payment_date |
-|---:|--------:|------------------:|------------------:|---------------:|--------------|
-| 1 | 101 | 1 | 2 | 850.00 | 2026-01-30 |
-| 2 | 101 | 2 | 2 | 850.00 | 2026-02-28 |
-| 3 | 102 | 1 | 3 | 600.00 | 2026-03-31 |
+| idx_payments_status | payment_status_code | Status reporting |
+| idx_payments_due | due_timestamp | Due date analysis |
+| idx_payments_method | payment_method_id | Payment method analysis |
 
 ---
 
@@ -318,32 +287,27 @@ CHECK (payment_amount > 0)
 
 ```sql
 SELECT *
-FROM payments;
+FROM `crediu-504100.Crediu.Payments`;
 ```
 
 ---
 
-## Total Payments Received
+## Total Paid Amount
 
 ```sql
 SELECT
-    SUM(payment_amount) AS total_received
-FROM payments;
+    SUM(paid_amount) AS total_paid
+FROM `crediu-504100.Crediu.Payments`;
 ```
 
 ---
 
-## Payments by Status
+## Outstanding Amount
 
 ```sql
 SELECT
-    ps.status_name,
-    COUNT(*) AS total_payments,
-    SUM(p.payment_amount) AS total_amount
-FROM payments p
-JOIN payment_status ps
-    ON p.payment_status_id = ps.id
-GROUP BY ps.status_name;
+    SUM(due_amount - paid_amount) AS outstanding_amount
+FROM `crediu-504100.Crediu.Payments`;
 ```
 
 ---
@@ -352,83 +316,57 @@ GROUP BY ps.status_name;
 
 ```sql
 SELECT
-    pm.method_name,
-    COUNT(*) AS total_transactions,
-    SUM(p.payment_amount) AS total_amount
-FROM payments p
-JOIN payment_methods pm
-    ON p.payment_method_id = pm.id
-GROUP BY pm.method_name
-ORDER BY total_amount DESC;
+    payment_method_id,
+    COUNT(*) AS total_payments
+FROM `crediu-504100.Crediu.Payments`
+GROUP BY payment_method_id;
 ```
 
 ---
 
-## Monthly Collections
+## Payments by Status
 
 ```sql
 SELECT
-    DATE_TRUNC('month', payment_date) AS month,
-    SUM(payment_amount) AS collection_amount
-FROM payments
-GROUP BY month
-ORDER BY month;
-```
-
----
-
-## Loan Payment History
-
-```sql
-SELECT
-    p.payment_date,
-    p.payment_amount,
-    ps.status_name
-FROM payments p
-JOIN payment_status ps
-    ON p.payment_status_id = ps.id
-WHERE p.loan_id = 101
-ORDER BY p.payment_date;
+    payment_status_code,
+    COUNT(*) AS total_payments
+FROM `crediu-504100.Crediu.Payments`
+GROUP BY payment_status_code;
 ```
 
 ---
 
 # Reporting Usage
 
-This table is commonly used in:
+This table is frequently used in:
 
 - Payment Dashboard
-- Collection Dashboard
-- Cash Flow Dashboard
+- Collection Report
+- Outstanding Balance Report
+- Payment Performance Dashboard
 - Executive Dashboard
-- Loan Repayment Report
-- Collection Performance Report
-- Delinquency Report
 
 ---
 
 # KPIs Supported
 
-- Total Collections
+- Total Payments
+- Total Amount Paid
+- Outstanding Amount
 - Collection Rate
-- Monthly Collections
-- Average Payment Amount
-- Payment Success Rate
-- Late Payment Rate
-- Outstanding Balance
-- Collection Performance
-- Repayment Trend
+- Late Fee Collected
+- Payment Method Distribution
 
 ---
 
 # ETL Considerations
 
-- Load loans before payment transactions.
-- Validate all foreign key references.
+- Preserve payment identifiers.
+- Validate loan references.
+- Validate payment status references.
+- Validate payment method references.
+- Preserve payment timestamps.
 - Prevent duplicate payment records.
-- Standardize payment dates.
-- Preserve transaction history.
-- Reject negative payment amounts.
 
 ---
 
@@ -436,7 +374,7 @@ This table is commonly used in:
 
 | Classification | Description |
 |----------------|-------------|
-| Confidential | Financial transaction data |
+| Confidential | Contains customer repayment information |
 
 ---
 
@@ -444,8 +382,8 @@ This table is commonly used in:
 
 | Item | Policy |
 |------|--------|
-| Retention Period | 10 Years |
-| Archive Policy | Annual Archive |
+| Retention Period | 7 Years |
+| Archive Policy | Annual |
 | Deletion Policy | Regulatory Compliance |
 
 ---
@@ -455,25 +393,27 @@ This table is commonly used in:
 ### Depends On
 
 - loans
-- payment_methods
 - payment_status
+- payment_methods
 
 ### Referenced By
 
-None
+- None
 
 ---
 
 # AI & RAG Notes
 
-The **Payments** table is the primary source of repayment and collection information within the Loan Management System. It enables AI systems to:
+The **Payments** table contains detailed loan repayment transactions.
 
-- Calculate collection rates.
-- Analyze repayment behavior.
-- Generate cash flow reports.
-- Produce SQL for payment analysis.
-- Support delinquency monitoring.
-- Build executive dashboards and financial performance reports.
+It enables AI systems to:
+
+- Generate BigQuery SQL involving payment transactions.
+- Analyze repayment performance.
+- Calculate outstanding balances.
+- Monitor collection activities.
+- Analyze payment methods and payment status.
+- Produce financial and operational reports.
 
 ---
 
@@ -484,11 +424,9 @@ The **Payments** table is the primary source of repayment and collection informa
 - Payment Methods Table
 - Database Schema
 - Relationship Matrix
-- Collection Dashboard
-- Business Rules
 
 ---
 
 # Summary
 
-The **Payments** table records every repayment transaction associated with approved loans. As the primary source of financial transaction data, it supports repayment tracking, collection monitoring, cash flow analysis, portfolio management, regulatory reporting, and AI-assisted analytics while ensuring accurate relationships with loans, payment methods, and payment statuses.
+The **Payments** table stores all loan repayment transactions, including installment schedules, payment amounts, payment status, payment methods, and due dates. It serves as the primary transaction table for repayment tracking, financial reporting, collection analysis, and AI-assisted SQL generation.

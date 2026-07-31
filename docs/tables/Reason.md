@@ -12,26 +12,25 @@
 
 # Overview
 
-The **Reason** table is a master reference table that stores the predefined purposes for which customers apply for loans.
+The **Reason** table stores the master list of loan purposes used throughout the Loan Management System.
 
-Rather than allowing free-text input, the Loan Management System uses this table to standardize loan purposes, ensuring consistent reporting, accurate analytics, and reliable business intelligence.
+It serves as a reference table that standardizes the reasons customers apply for loans, ensuring consistent classification across loan applications, reporting, and business analytics.
 
-Each loan application references exactly one loan purpose from this table.
+Each loan purpose is identified by a unique reason identifier.
 
 ---
 
 # Business Purpose
 
-The Reason table provides standardized loan purpose categories.
+The Reason table maintains standardized loan purpose information.
 
 Business objectives include:
 
 - Standardizing loan purposes
-- Preventing inconsistent data entry
-- Supporting business analytics
-- Improving loan portfolio reporting
-- Enabling customer segmentation
-- Maintaining referential integrity
+- Supporting loan application processing
+- Supporting lending analytics
+- Preventing inconsistent loan purpose values
+- Supporting business reporting
 
 ---
 
@@ -42,9 +41,9 @@ Business objectives include:
 | Table Name | reason |
 | Module | Master Data |
 | Type | Master Table |
-| Primary Key | id |
+| Primary Key | reason_id |
 | Parent Table | None |
-| Child Table | application |
+| Child Tables | application |
 | Estimated Volume | Very Low |
 | Update Frequency | Rare |
 
@@ -54,14 +53,14 @@ Business objectives include:
 
 | Column | Data Type | Nullable | PK | FK | Description |
 |----------|----------|----------|----|----|-------------|
-| id | BIGINT | No | ✓ | | Loan purpose identifier |
-| reason_name | VARCHAR(100) | No | | | Loan purpose name |
+| reason_id | INTEGER | No | ✓ | | Unique loan purpose identifier |
+| reason_for_loan | STRING | No | | | Standardized loan purpose |
 
 ---
 
 # Column Descriptions
 
-## id
+## reason_id
 
 **Description**
 
@@ -69,37 +68,31 @@ Unique identifier for each loan purpose.
 
 **Business Rules**
 
-- Auto-generated
-- Unique
-- Immutable
+- Must be unique
+- Cannot be NULL
+- Immutable after creation
 
 ---
 
-## reason_name
+## reason_for_loan
 
 **Description**
 
-Defines the customer's purpose for requesting a loan.
+Standardized description of the customer's reason for requesting a loan.
 
-Typical values:
+Example values:
 
-- Business Capital
+- Capital
+- Daily Needs
 - Education
-- Medical Expenses
-- Home Renovation
-- Vehicle Purchase
-- Personal Expenses
-- Debt Consolidation
-- Wedding
-- Travel
-- Other
+- Emergency
+- Entertainment
 
 **Business Rules**
 
 - Required
-- Must be unique
-- Use standardized naming
-- Avoid abbreviations unless officially defined
+- Cannot be NULL
+- Should contain standardized loan purposes
 
 ---
 
@@ -107,7 +100,13 @@ Typical values:
 
 | Column | Description |
 |---------|-------------|
-| id | Unique loan purpose identifier |
+| reason_id | Unique loan purpose identifier |
+
+---
+
+# Foreign Keys
+
+None.
 
 ---
 
@@ -115,7 +114,7 @@ Typical values:
 
 | Related Table | Relationship | Description |
 |---------------|--------------|-------------|
-| application | One-to-Many | One loan purpose may be used by many applications |
+| application | One-to-Many | One loan purpose can be referenced by many applications |
 
 ---
 
@@ -123,41 +122,20 @@ Typical values:
 
 ```text
 reason
-    │
-    │ id
-    ▼
+   │
+   │ reason_id
+   ▼
 application
-      │
-      ▼
-loans
 ```
 
 ---
 
 # Business Rules
 
-- Every loan application must have one loan purpose.
-- Loan purposes must be selected from this table.
-- Duplicate purpose names are not allowed.
-- New loan purposes require administrative approval.
-- Existing purpose names should not be modified without impact analysis.
-
----
-
-# Common Loan Purposes
-
-| Purpose | Description |
-|----------|-------------|
-| Business Capital | Business expansion or working capital |
-| Education | Tuition or educational expenses |
-| Medical Expenses | Healthcare and emergency treatment |
-| Home Renovation | Property improvement |
-| Vehicle Purchase | Purchase of cars or motorcycles |
-| Personal Expenses | General personal financial needs |
-| Debt Consolidation | Combining multiple debts |
-| Wedding | Wedding-related expenses |
-| Travel | Business or personal travel |
-| Other | Miscellaneous approved purposes |
+- Every loan purpose must have a unique identifier.
+- Loan purpose names should be standardized.
+- Every application should reference a valid loan purpose.
+- Loan purpose records should not be deleted if they are referenced by loan applications.
 
 ---
 
@@ -165,9 +143,9 @@ loans
 
 | Rule | Description |
 |------|-------------|
-| Required Purpose | reason_name cannot be NULL |
-| Unique Purpose | Duplicate values are not allowed |
-| Standard Naming | Use approved business terminology |
+| Required Reason ID | reason_id cannot be NULL |
+| Required Loan Purpose | reason_for_loan cannot be NULL |
+| Unique Reason ID | reason_id must be unique |
 
 ---
 
@@ -175,15 +153,8 @@ loans
 
 | Constraint | Description |
 |------------|-------------|
-| PRIMARY KEY | id |
-| UNIQUE | reason_name |
-| NOT NULL | reason_name |
-
-Example:
-
-```sql
-UNIQUE (reason_name)
-```
+| PRIMARY KEY | reason_id |
+| NOT NULL | Required columns |
 
 ---
 
@@ -191,25 +162,8 @@ UNIQUE (reason_name)
 
 | Index | Columns | Purpose |
 |---------|----------|---------|
-| pk_reason | id | Primary key lookup |
-| idx_reason_name | reason_name | Purpose lookup |
-
----
-
-# Sample Records
-
-| id | reason_name |
-|---:|-------------|
-| 1 | Business Capital |
-| 2 | Education |
-| 3 | Medical Expenses |
-| 4 | Home Renovation |
-| 5 | Vehicle Purchase |
-| 6 | Personal Expenses |
-| 7 | Debt Consolidation |
-| 8 | Wedding |
-| 9 | Travel |
-| 10 | Other |
+| pk_reason | reason_id | Primary key lookup |
+| idx_reason_name | reason_for_loan | Loan purpose search |
 
 ---
 
@@ -219,7 +173,17 @@ UNIQUE (reason_name)
 
 ```sql
 SELECT *
-FROM reason;
+FROM `crediu-504100.Crediu.Reason`;
+```
+
+---
+
+## Count Loan Purposes
+
+```sql
+SELECT
+    COUNT(*) AS total_loan_purposes
+FROM `crediu-504100.Crediu.Reason`;
 ```
 
 ---
@@ -228,82 +192,43 @@ FROM reason;
 
 ```sql
 SELECT
-    r.reason_name,
-    COUNT(a.id) AS total_applications
-FROM reason r
-LEFT JOIN application a
-    ON r.id = a.reason_id
-GROUP BY r.reason_name
+    r.reason_for_loan,
+    COUNT(a.applications_id) AS total_applications
+FROM `crediu-504100.Crediu.Reason` r
+LEFT JOIN `crediu-504100.Crediu.Application` a
+    ON r.reason_id = a.reason_id
+GROUP BY r.reason_for_loan
 ORDER BY total_applications DESC;
-```
-
----
-
-## Approved Loan Amount by Purpose
-
-```sql
-SELECT
-    r.reason_name,
-    SUM(l.approved_amount) AS total_portfolio
-FROM loans l
-JOIN application a
-    ON l.application_id = a.id
-JOIN reason r
-    ON a.reason_id = r.id
-GROUP BY r.reason_name
-ORDER BY total_portfolio DESC;
-```
-
----
-
-## Average Loan Amount by Purpose
-
-```sql
-SELECT
-    r.reason_name,
-    ROUND(AVG(l.approved_amount), 2) AS average_amount
-FROM loans l
-JOIN application a
-    ON l.application_id = a.id
-JOIN reason r
-    ON a.reason_id = r.id
-GROUP BY r.reason_name
-ORDER BY average_amount DESC;
 ```
 
 ---
 
 # Reporting Usage
 
-This table is commonly used in:
+This table is frequently used in:
 
 - Loan Purpose Dashboard
+- Loan Demand Analysis
+- Customer Borrowing Report
 - Executive Dashboard
-- Customer Behavior Analysis
-- Loan Portfolio Report
-- Marketing Analysis
-- Credit Risk Report
 
 ---
 
 # KPIs Supported
 
-- Applications by Purpose
-- Loan Portfolio by Purpose
-- Approval Rate by Purpose
-- Average Loan Amount by Purpose
-- Customer Distribution by Loan Purpose
-- Monthly Loan Demand by Purpose
+- Applications by Loan Purpose
+- Most Popular Loan Purpose
+- Loan Purpose Distribution
+- Customer Borrowing Trends
 
 ---
 
 # ETL Considerations
 
-- Load loan purpose master data before application records.
-- Prevent duplicate purpose names.
-- Maintain standardized naming.
-- Validate foreign key references from the Application table.
-- Review new categories before deployment.
+- Preserve reason identifiers.
+- Prevent duplicate loan purposes.
+- Standardize loan purpose names.
+- Validate reason references before loading application data.
 
 ---
 
@@ -311,7 +236,7 @@ This table is commonly used in:
 
 | Classification | Description |
 |----------------|-------------|
-| Internal | Reference master data |
+| Internal | Master reference data |
 
 ---
 
@@ -321,7 +246,7 @@ This table is commonly used in:
 |------|--------|
 | Retention Period | Permanent |
 | Archive Policy | Not Applicable |
-| Deletion Policy | Administrative update only |
+| Deletion Policy | Soft Delete Recommended |
 
 ---
 
@@ -329,7 +254,7 @@ This table is commonly used in:
 
 ### Depends On
 
-None
+- None
 
 ### Referenced By
 
@@ -339,29 +264,28 @@ None
 
 # AI & RAG Notes
 
-The **Reason** table provides standardized loan purpose categories that enable AI systems to:
+The **Reason** table provides standardized loan purpose information used throughout the Loan Management System.
 
-- Analyze borrowing trends.
-- Generate SQL grouped by loan purpose.
-- Produce customer behavior reports.
-- Build loan demand dashboards.
-- Recommend joins between applications, loans, and loan purposes.
-- Improve portfolio segmentation and business insights.
+It enables AI systems to:
+
+- Generate BigQuery SQL involving loan purposes.
+- Analyze customer borrowing reasons.
+- Produce loan purpose distribution reports.
+- Join loan purpose information with loan applications.
+- Support lending and business analytics.
 
 ---
 
 # Related Documentation
 
 - Application Table
+- Users Table
 - Loans Table
 - Database Schema
 - Relationship Matrix
-- Business Rules
-- Executive Dashboard
-- Customer Analytics
 
 ---
 
 # Summary
 
-The **Reason** table is a master reference table that defines the standardized purposes for loan applications within the Loan Management System. By centralizing loan purpose categories, it ensures consistent data entry, reliable reporting, meaningful portfolio analysis, and strong referential integrity while supporting operational processes, business intelligence, and AI-powered analytics.
+The **Reason** table is a master reference table containing standardized loan purposes. It provides consistent classification for customer loan applications, supports reporting and analytics, and serves as the reference table for the `application.reason_id` foreign key in AI-assisted SQL generation.

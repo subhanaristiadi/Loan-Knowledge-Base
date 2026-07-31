@@ -47,13 +47,13 @@ Business objectives include:
 
 | Property | Value |
 |----------|-------|
-| Table Name | application |
+| Table Name | application_history |
 | Module | Loan Processing |
 | Type | Transaction Table |
-| Primary Key | id |
-| Parent Table | users |
-| Child Tables | application_history, loans |
-| Estimated Volume | High |
+| Primary Key | application_history_id |
+| Parent Table | application |
+| Child Tables | None |
+| Estimated Volume | Very High |
 | Update Frequency | Continuous |
 
 ---

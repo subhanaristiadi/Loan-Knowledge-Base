@@ -12,26 +12,25 @@
 
 # Overview
 
-The **Loan Status** table is a master reference table that defines the possible statuses of a loan throughout its lifecycle.
+The **Loan Status** table stores the master list of loan statuses used throughout the Loan Management System.
 
-Rather than storing status names directly in the **Loans** table, the system references this table to maintain consistency, improve data quality, and simplify reporting.
+It serves as a reference table that standardizes the status assigned to every loan, ensuring consistent reporting and business processes.
 
-The table acts as a lookup table for all valid loan statuses.
+Each loan status is identified by a unique status code.
 
 ---
 
 # Business Purpose
 
-The Loan Status table standardizes loan status values across the Loan Management System.
+The Loan Status table maintains standardized loan status information.
 
 Business objectives include:
 
 - Standardizing loan statuses
-- Preventing inconsistent status values
 - Supporting loan lifecycle management
-- Improving reporting consistency
-- Simplifying dashboard development
-- Maintaining referential integrity
+- Supporting operational reporting
+- Preventing inconsistent status values
+- Supporting business analytics
 
 ---
 
@@ -42,9 +41,9 @@ Business objectives include:
 | Table Name | loan_status |
 | Module | Master Data |
 | Type | Master Table |
-| Primary Key | id |
+| Primary Key | loan_status_code |
 | Parent Table | None |
-| Child Table | loans |
+| Child Tables | loans |
 | Estimated Volume | Very Low |
 | Update Frequency | Rare |
 
@@ -54,14 +53,14 @@ Business objectives include:
 
 | Column | Data Type | Nullable | PK | FK | Description |
 |----------|----------|----------|----|----|-------------|
-| id | BIGINT | No | ✓ | | Loan status identifier |
-| status_name | VARCHAR(50) | No | | | Loan status name |
+| loan_status_code | INTEGER | No | ✓ | | Unique loan status code |
+| loan_status | STRING | No | | | Loan status name |
 
 ---
 
 # Column Descriptions
 
-## id
+## loan_status_code
 
 **Description**
 
@@ -69,32 +68,28 @@ Unique identifier for each loan status.
 
 **Business Rules**
 
-- Auto-generated
-- Unique
-- Immutable
+- Must be unique
+- Cannot be NULL
+- Immutable after creation
 
 ---
 
-## status_name
+## loan_status
 
 **Description**
 
-The business name of the loan status.
+Descriptive name of the loan status.
 
 Example values:
 
-- Active
-- Paid Off
-- Defaulted
-- Closed
-- Written Off
+- Paid_Off
+- Not_Paid_Off
 
 **Business Rules**
 
 - Required
-- Must be unique
-- Use standardized terminology
-- Case-sensitive naming should follow organizational standards
+- Cannot be NULL
+- Should contain standardized status names
 
 ---
 
@@ -102,7 +97,13 @@ Example values:
 
 | Column | Description |
 |---------|-------------|
-| id | Unique loan status identifier |
+| loan_status_code | Unique loan status identifier |
+
+---
+
+# Foreign Keys
+
+None.
 
 ---
 
@@ -110,7 +111,7 @@ Example values:
 
 | Related Table | Relationship | Description |
 |---------------|--------------|-------------|
-| loans | One-to-Many | One loan status may be assigned to many loans |
+| loans | One-to-Many | One loan status can be assigned to many loans |
 
 ---
 
@@ -119,7 +120,7 @@ Example values:
 ```text
 loan_status
       │
-      │ id
+      │ loan_status_code
       ▼
 loans
 ```
@@ -128,35 +129,10 @@ loans
 
 # Business Rules
 
-- Every loan must have exactly one status.
-- Status values must come from this table.
-- Loan status changes should follow approved business workflows.
-- Status records should rarely change.
-- Status names should never be duplicated.
-
----
-
-# Typical Loan Lifecycle
-
-```text
-Active
-
-↓
-
-Paid Off
-
-OR
-
-Defaulted
-
-↓
-
-Closed
-
-OR
-
-Written Off
-```
+- Every loan status must have a unique code.
+- Loan status names should be standardized.
+- Every loan should reference a valid loan status.
+- Loan status records should not be deleted if referenced by loan records.
 
 ---
 
@@ -164,9 +140,9 @@ Written Off
 
 | Rule | Description |
 |------|-------------|
-| Required Status | status_name cannot be NULL |
-| Unique Status | No duplicate status names |
-| Standard Naming | Use approved status values |
+| Required Status Code | loan_status_code cannot be NULL |
+| Required Status Name | loan_status cannot be NULL |
+| Unique Status Code | loan_status_code must be unique |
 
 ---
 
@@ -174,15 +150,8 @@ Written Off
 
 | Constraint | Description |
 |------------|-------------|
-| PRIMARY KEY | id |
-| UNIQUE | status_name |
-| NOT NULL | status_name |
-
-Example:
-
-```sql
-UNIQUE (status_name)
-```
+| PRIMARY KEY | loan_status_code |
+| NOT NULL | Required columns |
 
 ---
 
@@ -190,20 +159,8 @@ UNIQUE (status_name)
 
 | Index | Columns | Purpose |
 |---------|----------|---------|
-| pk_loan_status | id | Primary key lookup |
-| idx_loan_status_name | status_name | Status lookup |
-
----
-
-# Sample Records
-
-| id | status_name |
-|---:|-------------|
-| 1 | Active |
-| 2 | Paid Off |
-| 3 | Defaulted |
-| 4 | Closed |
-| 5 | Written Off |
+| pk_loan_status | loan_status_code | Primary key lookup |
+| idx_loan_status_name | loan_status | Loan status search |
 
 ---
 
@@ -213,86 +170,58 @@ UNIQUE (status_name)
 
 ```sql
 SELECT *
-FROM loan_status;
+FROM `crediu-504100.Crediu.Loan Status`;
 ```
 
 ---
 
-## Number of Loans by Status
+## Count Loan Statuses
 
 ```sql
 SELECT
-    ls.status_name,
-    COUNT(l.id) AS total_loans
-FROM loan_status ls
-LEFT JOIN loans l
-    ON ls.id = l.loan_status_id
-GROUP BY ls.status_name
-ORDER BY total_loans DESC;
+    COUNT(*) AS total_statuses
+FROM `crediu-504100.Crediu.Loan Status`;
 ```
 
 ---
 
-## Active Loans
+## Find a Loan Status
 
 ```sql
-SELECT
-    l.*
-FROM loans l
-JOIN loan_status ls
-    ON l.loan_status_id = ls.id
-WHERE ls.status_name = 'Active';
-```
-
----
-
-## Loan Portfolio by Status
-
-```sql
-SELECT
-    ls.status_name,
-    SUM(l.approved_amount) AS portfolio_value
-FROM loans l
-JOIN loan_status ls
-    ON l.loan_status_id = ls.id
-GROUP BY ls.status_name
-ORDER BY portfolio_value DESC;
+SELECT *
+FROM `crediu-504100.Crediu.Loan Status`
+WHERE loan_status = 'Paid_Off';
 ```
 
 ---
 
 # Reporting Usage
 
-This table is commonly used in:
+This table is frequently used in:
 
 - Loan Portfolio Dashboard
+- Loan Status Distribution
+- Collection Report
 - Executive Dashboard
-- Collection Dashboard
-- Credit Risk Dashboard
-- Loan Performance Report
-- Portfolio Monitoring Report
+- Loan Performance Analysis
 
 ---
 
 # KPIs Supported
 
-- Active Loans
-- Closed Loans
-- Default Rate
-- Paid-Off Rate
-- Loan Portfolio by Status
-- Outstanding Loan Balance
-- Collection Performance
+- Paid Off Loans
+- Not Paid Off Loans
+- Loan Status Distribution
+- Portfolio Performance
 
 ---
 
 # ETL Considerations
 
-- Load loan status master data before loading loans.
-- Prevent duplicate status values.
-- Validate foreign key references.
-- Use controlled vocabulary for status names.
-- Preserve historical consistency.
+- Preserve status codes.
+- Prevent duplicate status codes.
+- Standardize status names.
+- Validate loan status references before loading loan data.
 
 ---
 
@@ -300,7 +229,7 @@ This table is commonly used in:
 
 | Classification | Description |
 |----------------|-------------|
-| Internal | Reference master data |
+| Internal | Master reference data |
 
 ---
 
@@ -310,7 +239,7 @@ This table is commonly used in:
 |------|--------|
 | Retention Period | Permanent |
 | Archive Policy | Not Applicable |
-| Deletion Policy | Administrative update only |
+| Deletion Policy | Soft Delete Recommended |
 
 ---
 
@@ -318,7 +247,7 @@ This table is commonly used in:
 
 ### Depends On
 
-None
+- None
 
 ### Referenced By
 
@@ -328,29 +257,27 @@ None
 
 # AI & RAG Notes
 
-The **Loan Status** table provides standardized lifecycle states that enable AI systems to:
+The **Loan Status** table provides standardized loan status information used throughout the Loan Management System.
 
-- Explain loan progression.
-- Generate portfolio reports by status.
-- Produce status-based SQL queries.
-- Analyze loan performance.
-- Recommend appropriate joins with the Loans table.
-- Support business intelligence dashboards and operational reporting.
+It enables AI systems to:
+
+- Generate BigQuery SQL involving loan status data.
+- Analyze loan portfolio performance.
+- Produce loan status distribution reports.
+- Join loan status information with loan records.
+- Support operational and business analytics.
 
 ---
 
 # Related Documentation
 
 - Loans Table
-- Payment Status Table
+- Application Table
 - Database Schema
 - Relationship Matrix
-- Loan Lifecycle
-- Business Rules
-- Executive Dashboard
 
 ---
 
 # Summary
 
-The **Loan Status** table is a master reference table that defines the valid lifecycle states for loans within the Loan Management System. By centralizing loan status definitions, it ensures consistent reporting, reliable analytics, strong referential integrity, and simplified maintenance across operational systems, business intelligence solutions, and AI-powered applications.
+The **Loan Status** table is a master reference table containing standardized loan statuses. It ensures consistent classification of loan records, supports reporting and analytics, and provides a common reference for AI-assisted SQL generation.

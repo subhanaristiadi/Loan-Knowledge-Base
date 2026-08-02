@@ -52,7 +52,7 @@ Business objectives include:
 
 | Column | Data Type | Nullable | PK | FK | Description |
 |----------|----------|----------|----|----|-------------|
-| user_id | BIGINT | No | ✓ | | Unique customer identifier |
+| user_id | INTEGER | No | ✓ | | Unique customer identifier |
 | register_date | TIMESTAMP | No | | | Customer registration date and time |
 | gender | STRING | No | | | Customer gender |
 | date_of_birth | DATE | No | | | Customer date of birth |

@@ -54,17 +54,17 @@ Business objectives include:
 
 | Column | Data Type | Nullable | PK | FK | Description |
 |----------|----------|----------|----|----|-------------|
-| payment_id | BIGINT | No | ✓ | | Unique payment identifier |
+| payment_id | INTEGER | No | ✓ | | Unique payment identifier |
 | loan_id | STRING | No | | ✓ | References the associated loan |
 | payment_number | INTEGER | No | | | Installment sequence number |
 | payment_status_code | INTEGER | No | | ✓ | References the payment status |
-| payment_timestamp | TIMESTAMP | Yes | | | Date and time the payment was made |
+| payment_timestamp | STRING | Yes | | | Date and time the payment was made |
 | due_timestamp | TIMESTAMP | No | | | Scheduled payment due date |
-| principal_amount | NUMERIC | No | | | Principal portion of the installment |
-| interest_amount | NUMERIC | No | | | Interest portion of the installment |
-| late_fee | NUMERIC | No | | | Late payment fee |
-| due_amount | NUMERIC | No | | | Total amount due |
-| paid_amount | NUMERIC | No | | | Amount actually paid |
+| principal_amount | INTEGER | No | | | Principal portion of the installment |
+| interest_amount | INTEGER | No | | | Interest portion of the installment |
+| late_fee | INTEGER | No | | | Late payment fee |
+| due_amount | INTEGER | No | | | Total amount due |
+| paid_amount | INTEGER | No | | | Amount actually paid |
 | payment_method_id | INTEGER | Yes | | ✓ | References the payment method |
 
 ---

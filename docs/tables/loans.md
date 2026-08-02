@@ -56,12 +56,12 @@ Business objectives include:
 | Column | Data Type | Nullable | PK | FK | Description |
 |----------|----------|----------|----|----|-------------|
 | loan_id | STRING | No | ✓ | | Unique loan identifier |
-| applications_id | BIGINT | No | | ✓ | References the associated application |
+| applications_id | INTEGER | No | | ✓ | References the associated application |
 | loan_status_code | INTEGER | No | | ✓ | References the current loan status |
-| credit_score | INTEGER | No | | | Customer credit score |
+| credit_score | STRING | No | | | Customer credit score |
 | loan_period | INTEGER | No | | | Loan term in months |
-| interest | NUMERIC | No | | | Annual interest rate |
-| disbursed_amount | NUMERIC | No | | | Amount disbursed to the customer |
+| interest | FLOAT | No | | | Annual interest rate |
+| disbursed_amount | INTEGER | No | | | Amount disbursed to the customer |
 
 ---
 

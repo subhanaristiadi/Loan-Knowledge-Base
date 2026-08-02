@@ -22,7 +22,7 @@ This document explains the application status codes used in the dataset.
 | `status_name` | STRING | Human-readable status name |
 | `stage_order` | INTEGER | Sequence order in the application lifecycle |
 | `outcome_category` | STRING | High-level application outcome category |
-| `is_terminal` | STRING | Indicates whether the status is a terminal stage |
+| `is_terminal` | BOOLEAN | Indicates whether the status is a terminal stage |
 | `description` | STRING | Business description of the status |
 
 ---

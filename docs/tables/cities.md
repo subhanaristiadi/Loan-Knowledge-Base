@@ -53,8 +53,8 @@ Business objectives include:
 
 | Column | Data Type | Nullable | PK | FK | Description |
 |----------|----------|----------|----|----|-------------|
-| locations_id | BIGINT | No | ✓ | | Unique city identifier |
-| province_id | BIGINT | No | | ✓ | References the province |
+| locations_id | INTEGER | No | ✓ | | Unique city identifier |
+| province_id | INTEGER | No | | ✓ | References the province |
 | city | STRING | No | | | City name |
 
 ---

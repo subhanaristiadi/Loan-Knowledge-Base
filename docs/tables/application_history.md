@@ -56,8 +56,8 @@ Business objectives include:
 |----------|----------|----------|----|----|-------------|
 | application_history_id | STRING | No | ✓ | | Unique application history identifier |
 | created_date | STRING | No | | | Date and time when the history record was created |
-| applications_codes | STRING | No | | | Application workflow or event code |
-| application_id | BIGINT | No | | ✓ | References the associated application |
+| applications_codes | INTEGER | No | | | Application workflow or event code |
+| application_id | INTEGER | No | | ✓ | References the associated application |
 
 ---
 

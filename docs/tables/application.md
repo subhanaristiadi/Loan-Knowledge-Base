@@ -55,13 +55,13 @@ Business objectives include:
 
 | Column | Data Type | Nullable | PK | FK | Description |
 |----------|----------|----------|----|----|-------------|
-| applications_id | BIGINT | No | ✓ | | Unique application identifier |
-| user_id | BIGINT | No | | ✓ | Applicant |
-| reason_id | BIGINT | No | | ✓ | Loan purpose |
+| applications_id | INTEGER | No | ✓ | | Unique application identifier |
+| user_id | INTEGER | No | | ✓ | Applicant |
+| reason_id | INTEGER | No | | ✓ | Loan purpose |
 | education_code | INTEGER | No | | | Applicant education level |
 | created_date | TIMESTAMP | No | | | Application creation date |
-| income | NUMERIC | No | | | Monthly income |
-| expense | NUMERIC | No | | | Monthly expense |
+| income | INTEGER | No | | | Monthly income |
+| expense | INTEGER | No | | | Monthly expense |
 
 ---
 
